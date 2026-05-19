@@ -1,55 +1,146 @@
-/* ── 본문 글자 크기 ── */
+/* ════════════════════════════════════════
+   색상 테마 (참조: liu-houliang/hugo-stack-starter)
+   ════════════════════════════════════════ */
 :root {
-    --article-font-size: 1.45rem;
-}
+    --body-background: #f8f7f2;
+    --accent-color: #1B365D;
+    --accent-color-rgb: 27, 54, 93;
+    --accent-color-darker: #202A44;
+    --accent-color-text: #FFF;
+    --body-text-color: #2D3748;
 
-@media (min-width: 768px) {
-    :root {
-        --article-font-size: 1.5rem;
-    }
-}
+    --card-background: #fdfdfb;
+    --card-background-selected: #f4f3ef;
+    --card-border: transparent;
+    --card-text-color-main: #333333;
+    --card-text-color-secondary: #5d5d5d;
+    --card-text-color-tertiary: #8c8c8c;
+    --card-separator-color: rgba(0, 0, 0, 0.08);
 
-/* ── 코드 블록 가로 넘침 방지 ── */
-.article-content {
-    /* 하이라이트 래퍼 */
-    .highlight,
-    div.highlight {
-        max-width: 100%;
-        overflow-x: auto;
-        overflow-y: hidden;
+    --blockquote-background-color: #f2f1eb;
+    --code-background-color: #f2f1eb;
+    --code-text-color: #24292f;
 
-        pre {
-            white-space: pre;
-            word-wrap: normal;
-            overflow-x: auto;
+    --article-font-size: 1.5rem;
+
+    &[data-scheme="dark"] {
+        --body-background: #101214;
+        --body-text-color: #c9d1d9;
+
+        --card-background: #1c2128;
+        --card-background-selected: #22272e;
+        --card-border: #30363d;
+
+        --card-text-color-main: #edf2f7;
+        --card-text-color-secondary: #aab4be;
+        --card-text-color-tertiary: #8b949e;
+        --card-separator-color: #383838;
+
+        --code-background-color: #2d333b;
+        --code-text-color: #adbac7;
+        --blockquote-background-color: #22272e;
+
+        img, video, iframe {
+            filter: brightness(.8) contrast(1.1);
+            transition: filter 0.5s ease-in-out;
+            &:hover { filter: brightness(1) contrast(1); }
         }
     }
-
-    /* 일반 pre 태그 */
-    pre {
-        max-width: 100%;
-        overflow-x: auto;
-        white-space: pre;
-        word-wrap: normal;
-    }
-
-    /* 인라인 코드 줄바꿈 */
-    p code,
-    li code {
-        word-break: break-word;
-    }
 }
 
-/* ── 글 목록 카드 제목 크기 ── */
+/* ════════════════════════════════════════
+   macOS 스타일 코드 블록
+   ════════════════════════════════════════ */
+.article-content .highlight {
+    background-color: var(--pre-background-color);
+    border-radius: 10px;
+    margin: 1.5rem 0 !important;
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    width: 100% !important;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+[data-scheme="dark"] .article-content .highlight {
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* macOS dots 타이틀 바 */
+.article-content .highlight:before {
+    content: "";
+    display: block;
+    background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZlcnNpb249IjEuMSIgeD0iMHB4IiB5PSIwcHgiIHdpZHRoPSI0NTBweCIgaGVpZ2h0PSIxMzBweCI+PGVsbGlwc2UgY3g9IjY1IiBjeT0iNjUiIHJ4PSI1MCIgcnk9IjUyIiBzdHJva2U9InJnYigyMjAsNjAsNTQpIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9InJnYigyMzcsMTA4LDk2KSIvPjxlbGxpcHNlIGN4PSIyMjUiIGN5PSI2NSIgcng9IjUwIiByeT0iNTIiIHN0cm9rZT0icmdiKDIxOCwxNTEsMzMpIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9InJnYigyNDcsMTkzLDgxKSIvPjxlbGxpcHNlIGN4PSIzODUiIGN5PSI2NSIgcng9IjUwIiByeT0iNTIiIHN0cm9rZT0icmdiKDI3LDE2MSwzNykiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0icmdiKDEwMCwyMDAsODYpIi8+PC9zdmc+");
+    height: 35px;
+    width: 100%;
+    background-size: 52px;
+    background-repeat: no-repeat;
+    background-position: 12px center;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+[data-scheme="dark"] .article-content .highlight:before {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.article-content .highlight pre {
+    padding: 16px;
+    margin: 0;
+    background-color: transparent;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+    white-space: pre;
+    word-wrap: normal;
+}
+
+/* 코드 블록 스크롤바 — hover 시에만 표시 */
+.article-content pre::-webkit-scrollbar,
+.article-content .highlight pre::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+    background: transparent;
+}
+
+.article-content pre::-webkit-scrollbar-thumb,
+.article-content .highlight pre::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.article-content pre,
+.article-content .highlight pre {
+    scrollbar-width: auto;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.2s;
+}
+
+.article-content pre:hover,
+.article-content .highlight pre:hover {
+    scrollbar-color: rgba(120, 130, 140, 0.3) transparent;
+}
+
+.article-content pre:hover::-webkit-scrollbar-thumb,
+.article-content .highlight pre:hover::-webkit-scrollbar-thumb {
+    background: rgba(120, 130, 140, 0.3);
+}
+
+[data-scheme="dark"] .article-content pre:hover,
+[data-scheme="dark"] .article-content .highlight pre:hover {
+    scrollbar-color: rgba(120, 130, 140, 0.4) transparent;
+}
+
+/* ════════════════════════════════════════
+   글 목록 카드
+   ════════════════════════════════════════ */
 .article-list {
     article {
         .article-title h2 {
-            font-size: 1.5rem;
+            font-size: 1.55rem;
             line-height: 1.5;
-
-            @media (min-width: 768px) {
-                font-size: 1.6rem;
-            }
         }
 
         .article-subtitle {
@@ -63,10 +154,12 @@
     }
 }
 
-/* ── 페이지네이션: 컴팩트 pill 스타일 ── */
+/* ════════════════════════════════════════
+   페이지네이션 — pill 스타일
+   ════════════════════════════════════════ */
 .pagination {
     width: fit-content;
-    margin: 16px auto;
+    margin: 20px auto;
     border-radius: 40px;
     box-shadow: var(--shadow-l1);
     overflow: hidden;
@@ -87,21 +180,23 @@
             color: var(--accent-color);
         }
 
-        &:first-child,
-        &:last-child {
+        &:first-child, &:last-child {
             flex: 0 0 40px;
         }
     }
 }
 
-/* ── 카테고리 위젯 카운트 표시 ── */
-.widget--categories {
-    .term-badge,
-    .term-count {
-        font-size: 1.2rem;
-        background: var(--card-background-selected);
-        color: var(--card-text-color-secondary);
-        padding: 1px 8px;
-        border-radius: 20px;
+/* ════════════════════════════════════════
+   TOC 스크롤바
+   ════════════════════════════════════════ */
+.toc-nav {
+    &::-webkit-scrollbar { width: 6px; height: 6px; }
+    &::-webkit-scrollbar-track { background: transparent; border-radius: 4px; }
+    &::-webkit-scrollbar-thumb {
+        background: rgba(120, 130, 140, 0.25);
+        border-radius: 4px;
     }
+    &::-webkit-scrollbar-thumb:hover { background: rgba(120, 130, 140, 0.45); }
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 130, 140, 0.25) transparent;
 }

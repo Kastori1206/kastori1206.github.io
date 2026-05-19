@@ -3,6 +3,7 @@ locale = "ko-kr"
 title = "kastori"
 theme = "stack"
 paginate = 10
+hasCJKLanguage = true
 
 [params]
     mainSections = ["tech", "til", "log"]
@@ -54,8 +55,25 @@ paginate = 10
     [params.opengraph.twitter]
         card = "summary_large_image"
 
+    [params.homepage]
+        grid = true
+
     [params.comments]
-        enabled = false
+        enabled = true
+        provider = "giscus"
+
+    [params.comments.giscus]
+        repo = "kastori1206/kastori1206.github.io"
+        repoID = ""
+        category = "Announcements"
+        categoryID = ""
+        mapping = "title"
+        lightTheme = "light"
+        darkTheme = "dark_dimmed"
+        reactionsEnabled = 1
+        emitMetadata = 0
+        inputPosition = "top"
+        lang = "ko"
 
 [menu]
     [[menu.main]]
