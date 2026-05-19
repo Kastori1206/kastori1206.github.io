@@ -5,6 +5,7 @@ draft: false
 series: "Spring 완전 정복"
 series_order: 5
 series_total: 14
+categories: ["Spring"]
 tags: [spring, transaction, transactional, propagation, isolation, java, backend]
 description: "@Transactional이 AOP 프록시로 동작하는 원리부터, REQUIRED vs REQUIRES_NEW 차이, 격리수준 4단계, 자기 호출 함정까지 실전 코드로 정리한다."
 wiki_source: 10-wiki/tech/spring/05-spring-transaction.md

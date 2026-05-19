@@ -5,6 +5,7 @@ draft: false
 series: "Spring 완전 정복"
 series_order: 4
 series_total: 14
+categories: ["Spring"]
 tags: [spring, spring-boot, auto-configuration, starter, actuator, java, backend]
 description: "Spring Boot가 설정 파일 없이 동작하는 원리 — @SpringBootApplication 분해, @Conditional 자동설정, 스타터와 BOM, 프로파일과 설정 우선순위를 코드와 함께 정리한다."
 wiki_source: 10-wiki/tech/spring/04-spring-boot.md

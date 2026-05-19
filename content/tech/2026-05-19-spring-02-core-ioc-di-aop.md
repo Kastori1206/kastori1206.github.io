@@ -5,6 +5,7 @@ draft: false
 series: "Spring 완전 정복"
 series_order: 2
 series_total: 14
+categories: ["Spring"]
 tags: [spring, ioc, di, aop, bean, java, backend]
 description: "Spring이 어노테이션 하나로 마법처럼 동작하는 이유, IoC/DI가 왜 필요한지, AOP 프록시가 @Transactional을 어떻게 처리하는지를 코드로 풀어낸다."
 wiki_source: 10-wiki/tech/spring/02-spring-core.md

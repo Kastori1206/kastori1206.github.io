@@ -1,74 +1,42 @@
-.section-tree--list {
-    margin-top: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
+/* 글 목록 카드 제목 크기 축소 */
+.article-list {
+    article {
+        .article-title {
+            h2 {
+                font-size: 1.5rem;
+                line-height: 1.5;
 
-.section-tree--item {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
+                @media (min-width: 768px) {
+                    font-size: 1.6rem;
+                }
+            }
+        }
 
-.section-tree--parent {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 5px 8px;
-    border-radius: 6px;
-    font-size: 1.4rem;
-    font-weight: 600;
-    color: var(--card-text-color-main);
-    text-decoration: none;
-    transition: background 0.2s;
-
-    &:hover {
-        background: var(--card-background);
-        color: var(--accent-color);
-    }
-
-    &.active {
-        color: var(--accent-color);
+        .article-subtitle {
+            font-size: 1.3rem;
+            line-height: 1.6;
+            -webkit-line-clamp: 2;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
     }
 }
 
-.section-tree--children {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    margin-left: 12px;
-    padding-left: 12px;
-    border-left: 2px solid var(--card-separator-color);
-}
+/* 페이지네이션 현재 페이지에 악센트 컬러 */
+.pagination {
+    .page-link {
+        font-size: 1.4rem;
 
-.section-tree--child {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 1.3rem;
-    color: var(--card-text-color-secondary);
-    text-decoration: none;
-    transition: background 0.2s;
+        &.current {
+            background-color: var(--accent-color);
+            color: #fff;
+            font-weight: 700;
+        }
 
-    &:hover {
-        background: var(--card-background);
-        color: var(--accent-color);
+        &:hover:not(.current):not(.disabled) {
+            background-color: var(--card-background-selected);
+            color: var(--accent-color);
+        }
     }
-
-    &.active {
-        color: var(--accent-color);
-        font-weight: 600;
-    }
-}
-
-.section-tree--count {
-    font-size: 1.2rem;
-    color: var(--card-text-color-tertiary);
-    background: var(--card-background);
-    padding: 1px 7px;
-    border-radius: 20px;
-    font-weight: 400;
 }

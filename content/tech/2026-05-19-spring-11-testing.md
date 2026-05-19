@@ -5,6 +5,7 @@ draft: false
 series: "Spring 완전 정복"
 series_order: 11
 series_total: 14
+categories: ["Spring"]
 tags: [spring, test, springboottest, webmvctest, datajpatest, mockito, java, backend]
 description: "Spring 테스트의 세 계층 — JUnit5+Mockito 단위 테스트, @WebMvcTest 슬라이스 테스트, @DataJpaTest, @SpringBootTest 통합 테스트를 목적별로 구분하고 실전 코드로 정리한다."
 wiki_source: 10-wiki/tech/spring/09-spring-testing.md

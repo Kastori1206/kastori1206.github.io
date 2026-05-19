@@ -5,6 +5,7 @@ draft: false
 series: "Spring 완전 정복"
 series_order: 1
 series_total: 14
+categories: ["Spring"]
 tags: [spring, servlet, tomcat, java, backend]
 description: "Spring MVC의 Filter, Interceptor, AOP 차이를 진짜로 이해하려면 Servlet 구조를 알아야 한다. HTTP 요청이 Controller에 닿기까지 거치는 5개 레이어를 코드와 함께 정리한다."
 wiki_source: 10-wiki/tech/spring/01-servlet-fundamentals.md

@@ -5,6 +5,7 @@ draft: false
 series: "Spring 완전 정복"
 series_order: 13
 series_total: 14
+categories: ["Spring"]
 tags: [spring, cache, cacheable, redis, cacheevict, performance, backend]
 description: "@Cacheable/@CacheEvict/@CachePut 동작 원리, 로컬 캐시에서 Redis로 전환하는 방법, Cache-Aside/Write-Through 전략, 캐시 스탬피드와 자기 호출 함정까지 정리한다."
 wiki_source: 10-wiki/tech/spring/11-spring-cache.md

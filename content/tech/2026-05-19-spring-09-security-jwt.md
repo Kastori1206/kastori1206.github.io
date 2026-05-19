@@ -5,6 +5,7 @@ draft: false
 series: "Spring 완전 정복"
 series_order: 9
 series_total: 14
+categories: ["Spring"]
 tags: [spring, security, authentication, authorization, jwt, filter-chain, java, backend]
 description: "Spring Security의 DelegatingFilterProxy → FilterChainProxy → SecurityFilterChain 구조를 이해하고, JWT 인증 필터 구현, @PreAuthorize 인가, BCrypt 패스워드 처리까지 실전 코드로 정리한다."
 wiki_source: 10-wiki/tech/spring/07-spring-security.md

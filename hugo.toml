@@ -34,7 +34,9 @@ paginate = 10
         default = "auto"
 
     [[params.widgets.homepage]]
-        type = "section-tree"
+        type = "categories"
+        [params.widgets.homepage.params]
+            limit = 10
 
     [[params.widgets.homepage]]
         type = "search"

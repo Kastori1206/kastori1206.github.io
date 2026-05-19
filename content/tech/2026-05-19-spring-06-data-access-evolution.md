@@ -5,6 +5,7 @@ draft: false
 series: "Spring 완전 정복"
 series_order: 6
 series_total: 14
+categories: ["Spring"]
 tags: [spring, jdbc, jdbctemplate, mybatis, jpa, orm, java, backend]
 description: "순수 JDBC의 문제점부터 JdbcTemplate, MyBatis, JPA까지 각 기술이 무엇을 해결하고 무엇을 포기했는지 코드로 비교한다. 'JPA vs MyBatis' 논쟁에 명확한 답을 제시한다."
 wiki_source: 10-wiki/tech/spring/05a-data-access-evolution.md

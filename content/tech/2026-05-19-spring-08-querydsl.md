@@ -5,6 +5,7 @@ draft: false
 series: "Spring 완전 정복"
 series_order: 8
 series_total: 14
+categories: ["Spring"]
 tags: [spring, jpa, jpql, querydsl, java, backend]
 description: "JPQL의 문자열 한계를 QueryDSL이 어떻게 해결하는지, BooleanExpression 동적 쿼리 패턴, @QueryProjection DTO 조회, 페이징 최적화까지 실전 코드로 정리한다."
 wiki_source: 10-wiki/tech/spring/06a-spring-query-technologies.md

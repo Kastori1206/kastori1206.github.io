@@ -1,4 +1,4 @@
 ---
-title: "Tech"
-description: "기술 딥다이브 — Spring, JPA, React 등 깊게 파고든 기술 포스팅"
+title: "Spring 완전 정복"
+description: "Servlet부터 Scheduling까지, Spring 핵심 개념 14편 시리즈"
 ---

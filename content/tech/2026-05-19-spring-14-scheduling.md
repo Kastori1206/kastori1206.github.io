@@ -5,6 +5,7 @@ draft: false
 series: "Spring 완전 정복"
 series_order: 14
 series_total: 14
+categories: ["Spring"]
 tags: [spring, scheduling, scheduled, cron, shedlock, java, backend]
 description: "fixedRate vs fixedDelay vs cron 차이, 크론 표현식 작성법, 단일 스레드 함정, 그리고 다중 서버 환경에서 ShedLock으로 중복 실행을 방지하는 방법을 정리한다."
 wiki_source: 10-wiki/tech/spring/12-spring-scheduling.md

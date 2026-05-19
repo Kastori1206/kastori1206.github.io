@@ -5,6 +5,7 @@ draft: false
 series: "Spring 완전 정복"
 series_order: 3
 series_total: 14
+categories: ["Spring"]
 tags: [spring, spring-mvc, dispatcher-servlet, interceptor, filter, aop, java, backend]
 description: "HTTP 요청이 DispatcherServlet에서 Controller까지 처리되는 12단계 흐름을 분석하고, Filter/Interceptor/AOP를 언제 써야 하는지 레이어 구조로 정리한다."
 wiki_source: 10-wiki/tech/spring/03-spring-mvc.md

@@ -5,6 +5,7 @@ draft: false
 series: "Spring 완전 정복"
 series_order: 7
 series_total: 14
+categories: ["Spring"]
 tags: [spring, jpa, hibernate, orm, persistence-context, n+1, lazy-loading, java, backend]
 description: "JPA 면접 단골 주제 두 가지 — 영속성 컨텍스트(Dirty Checking, 1차 캐시, 지연 쓰기)와 N+1 문제(원인과 해결책 3가지)를 코드와 함께 정리한다."
 wiki_source: 10-wiki/tech/spring/06-spring-data-jpa.md

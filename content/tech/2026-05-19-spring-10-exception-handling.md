@@ -5,6 +5,7 @@ draft: false
 series: "Spring 완전 정복"
 series_order: 10
 series_total: 14
+categories: ["Spring"]
 tags: [spring, exception, controlleradvice, error-handling, java, backend]
 description: "@ControllerAdvice + @ExceptionHandler 전역 예외 처리 구조, BusinessException + ErrorCode Enum으로 Custom Exception 계층 설계하는 실전 패턴을 정리한다."
 wiki_source: 10-wiki/tech/spring/08-exception-handling.md

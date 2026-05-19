@@ -5,6 +5,7 @@ draft: false
 series: "Spring 완전 정복"
 series_order: 12
 series_total: 14
+categories: ["Spring"]
 tags: [spring, async, completablefuture, threadpool, java, backend]
 description: "@Async의 AOP 프록시 동작 원리, ThreadPoolTaskExecutor 설정, CompletableFuture 병렬 실행, 자기 호출·예외·ThreadLocal 전파 문제까지 실전 코드로 정리한다."
 wiki_source: 10-wiki/tech/spring/10-spring-async.md
