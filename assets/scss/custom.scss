@@ -96,41 +96,53 @@
     word-wrap: normal;
 }
 
-/* 코드 블록 스크롤바 — hover 시에만 표시 */
+/* 코드 블록 가로 스크롤바 */
 .article-content pre::-webkit-scrollbar,
 .article-content .highlight pre::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-    background: transparent;
+    width: 4px;
+    height: 4px;
+}
+
+.article-content pre::-webkit-scrollbar-track,
+.article-content .highlight pre::-webkit-scrollbar-track {
+    background: rgba(120, 130, 140, 0.1);
+    border-radius: 4px;
 }
 
 .article-content pre::-webkit-scrollbar-thumb,
 .article-content .highlight pre::-webkit-scrollbar-thumb {
-    background: transparent;
-    border-radius: 6px;
+    background: rgba(var(--accent-color-rgb), 0.45);
+    border-radius: 4px;
     transition: background 0.2s;
+}
+
+.article-content pre::-webkit-scrollbar-thumb:hover,
+.article-content .highlight pre::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--accent-color-rgb), 0.75);
 }
 
 .article-content pre,
 .article-content .highlight pre {
-    scrollbar-width: auto;
-    scrollbar-color: transparent transparent;
-    transition: scrollbar-color 0.2s;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--accent-color-rgb), 0.4) rgba(120, 130, 140, 0.1);
 }
 
-.article-content pre:hover,
-.article-content .highlight pre:hover {
-    scrollbar-color: rgba(120, 130, 140, 0.3) transparent;
-}
-
-.article-content pre:hover::-webkit-scrollbar-thumb,
-.article-content .highlight pre:hover::-webkit-scrollbar-thumb {
-    background: rgba(120, 130, 140, 0.3);
-}
-
-[data-scheme="dark"] .article-content pre:hover,
-[data-scheme="dark"] .article-content .highlight pre:hover {
-    scrollbar-color: rgba(120, 130, 140, 0.4) transparent;
+/* 관련 글 (subsection-list) 가로 스크롤바 */
+.subsection-list {
+    &::-webkit-scrollbar { height: 4px; }
+    &::-webkit-scrollbar-track {
+        background: var(--card-separator-color);
+        border-radius: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+        background: var(--accent-color);
+        border-radius: 4px;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color-darker);
+    }
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-color) var(--card-separator-color);
 }
 
 /* ════════════════════════════════════════
