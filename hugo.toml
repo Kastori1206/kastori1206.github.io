@@ -17,9 +17,9 @@ paginate = 10
 
     [params.sidebar]
         compact = false
-        emoji = "💻"
+        emoji = ""
         subtitle = "풀스택 개발자의 기술 블로그"
-        avatar = ""
+        avatar = "https://github.com/kastori1206.png"
 
     [params.article]
         toc = true
@@ -37,9 +37,6 @@ paginate = 10
         type = "categories"
         [params.widgets.homepage.params]
             limit = 10
-
-    [[params.widgets.homepage]]
-        type = "search"
 
     [[params.widgets.homepage]]
         type = "archives"
@@ -109,14 +106,13 @@ paginate = 10
         [menu.main.params]
             icon = "search"
 
-    [[menu.main]]
+    [[menu.social]]
         identifier = "github"
         name = "GitHub"
         url = "https://github.com/kastori1206"
-        weight = 70
-        [menu.main.params]
-            icon = "brand-github"
-            newTab = true
+        weight = 10
+        [menu.social.params]
+            Icon = "brand-github"
 
 [outputs]
     home = ["HTML", "RSS"]
