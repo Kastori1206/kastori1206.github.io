@@ -257,6 +257,91 @@
 }
 
 /* ════════════════════════════════════════
+   Archives 섹션 카드
+   ════════════════════════════════════════ */
+.archives-header {
+    .section-cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-top: 16px;
+        margin-bottom: 8px;
+
+        @media (max-width: 768px) {
+            grid-template-columns: 1fr;
+        }
+    }
+}
+
+.section-card-item--tech { background: linear-gradient(135deg, #1B365D 0%, #2563EB 100%); }
+.section-card-item--til  { background: linear-gradient(135deg, #065F46 0%, #059669 100%); }
+.section-card-item--log  { background: linear-gradient(135deg, #4C1D95 0%, #7C3AED 100%); }
+
+.section-card-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 22px 24px;
+    border-radius: 14px;
+    text-decoration: none;
+    color: #fff;
+    min-height: 130px;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+    overflow: hidden;
+    position: relative;
+
+    &::after {
+        content: "";
+        position: absolute;
+        top: -30%;
+        right: -10%;
+        width: 140px;
+        height: 140px;
+        background: rgba(255, 255, 255, 0.07);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+        color: #fff;
+    }
+
+    .section-card-top {
+        display: flex;
+        align-items: center;
+    }
+
+    .section-card-title {
+        font-size: 1.6rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+    }
+
+    .section-card-bottom {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+    }
+
+    .section-card-desc {
+        font-size: 1.15rem;
+        opacity: 0.8;
+    }
+
+    .section-card-count {
+        font-size: 1.1rem;
+        font-weight: 600;
+        opacity: 0.9;
+        background: rgba(255, 255, 255, 0.15);
+        padding: 3px 10px;
+        border-radius: 20px;
+        backdrop-filter: blur(4px);
+    }
+}
+
+/* ════════════════════════════════════════
    TOC 스크롤바
    ════════════════════════════════════════ */
 .toc-nav {
