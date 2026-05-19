@@ -253,64 +253,33 @@
 }
 
 /* ════════════════════════════════════════
-   페이지네이션
+   페이지네이션 — Stack 기본 구조 유지, 색상만 오버라이드
    ════════════════════════════════════════ */
 .pagination {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    margin: 24px 0;
-    width: 100%;
     border-radius: 12px;
-    background: var(--card-background);
-    border: 1px solid var(--card-separator-color);
-    padding: 8px 12px;
-    box-sizing: border-box;
-    box-shadow: none;
-    overflow: visible;
 
+    /* Stack 기본은 flex:1 1 auto로 버튼이 균등 확장됨 — 그대로 유지 */
     .page-link {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 36px;
-        height: 36px;
-        padding: 0 10px;
-        font-size: 1.35rem;
-        border-radius: 8px;
-        color: var(--card-text-color-secondary);
-        background: transparent;
-        border: none;
-        transition: all 0.15s ease;
-        text-decoration: none;
+        border-radius: 0;
 
         &.current {
-            background: var(--accent-color);
+            background-color: #2563EB;
             color: #fff;
             font-weight: 700;
         }
 
         &:hover:not(.current):not(.disabled) {
-            background: var(--card-background-selected);
+            background-color: var(--card-background-selected);
+            opacity: 1;
             color: var(--card-text-color-main);
         }
-
-        &.disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
-        &.pagination-jump-trigger {
-            cursor: pointer;
-            letter-spacing: 1px;
-        }
-
-        svg {
-            width: 16px;
-            height: 16px;
-        }
     }
+}
+
+/* 다크모드 — 더 밝은 파란색으로 구분 */
+[data-scheme="dark"] .pagination .page-link.current {
+    background-color: #3B82F6;
+    color: #fff;
 }
 
 /* ════════════════════════════════════════
@@ -371,19 +340,24 @@
 }
 
 /* ════════════════════════════════════════
-   Archives 섹션 카드
+   Archives 섹션 카드 — 가로 스크롤
    ════════════════════════════════════════ */
 .archives-header {
     .section-cards {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
+        display: flex;
+        flex-direction: row;
+        gap: 14px;
         margin-top: 16px;
-        margin-bottom: 8px;
+        margin-bottom: 4px;
+        overflow-x: auto;
+        padding-bottom: 8px;
 
-        @media (max-width: 768px) {
-            grid-template-columns: 1fr;
-        }
+        /* 스크롤바 */
+        &::-webkit-scrollbar { height: 4px; }
+        &::-webkit-scrollbar-track { background: var(--card-separator-color); border-radius: 4px; }
+        &::-webkit-scrollbar-thumb { background: var(--accent-color); border-radius: 4px; }
+        scrollbar-width: thin;
+        scrollbar-color: var(--accent-color) var(--card-separator-color);
     }
 }
 
@@ -395,11 +369,13 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 22px 24px;
-    border-radius: 14px;
+    padding: 20px 24px;
+    border-radius: 12px;
     text-decoration: none;
     color: #fff;
-    min-height: 130px;
+    min-width: 200px;
+    height: 110px;
+    flex-shrink: 0;
     transition: transform 0.22s ease, box-shadow 0.22s ease;
     overflow: hidden;
     position: relative;
@@ -409,16 +385,16 @@
         position: absolute;
         top: -30%;
         right: -10%;
-        width: 140px;
-        height: 140px;
+        width: 120px;
+        height: 120px;
         background: rgba(255, 255, 255, 0.07);
         border-radius: 50%;
         pointer-events: none;
     }
 
     &:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
         color: #fff;
     }
 
@@ -428,7 +404,7 @@
     }
 
     .section-card-title {
-        font-size: 1.6rem;
+        font-size: 1.55rem;
         font-weight: 700;
         letter-spacing: -0.01em;
     }
@@ -440,18 +416,17 @@
     }
 
     .section-card-desc {
-        font-size: 1.15rem;
+        font-size: 1.1rem;
         opacity: 0.8;
     }
 
     .section-card-count {
-        font-size: 1.1rem;
+        font-size: 1.05rem;
         font-weight: 600;
         opacity: 0.9;
-        background: rgba(255, 255, 255, 0.15);
-        padding: 3px 10px;
+        background: rgba(255, 255, 255, 0.18);
+        padding: 2px 9px;
         border-radius: 20px;
-        backdrop-filter: blur(4px);
     }
 }
 
