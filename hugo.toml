@@ -1,4 +1,4 @@
-baseURL = "https://kastori1206.github.io/"
+baseURL = "https://blog.kastori.dev/"
 locale = "ko-kr"
 title = "kastori"
 theme = "PaperMod"
