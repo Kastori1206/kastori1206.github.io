@@ -1,14 +1,54 @@
-/* 글 목록 카드 제목 크기 축소 */
+/* ── 본문 글자 크기 ── */
+:root {
+    --article-font-size: 1.45rem;
+}
+
+@media (min-width: 768px) {
+    :root {
+        --article-font-size: 1.5rem;
+    }
+}
+
+/* ── 코드 블록 가로 넘침 방지 ── */
+.article-content {
+    /* 하이라이트 래퍼 */
+    .highlight,
+    div.highlight {
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+
+        pre {
+            white-space: pre;
+            word-wrap: normal;
+            overflow-x: auto;
+        }
+    }
+
+    /* 일반 pre 태그 */
+    pre {
+        max-width: 100%;
+        overflow-x: auto;
+        white-space: pre;
+        word-wrap: normal;
+    }
+
+    /* 인라인 코드 줄바꿈 */
+    p code,
+    li code {
+        word-break: break-word;
+    }
+}
+
+/* ── 글 목록 카드 제목 크기 ── */
 .article-list {
     article {
-        .article-title {
-            h2 {
-                font-size: 1.5rem;
-                line-height: 1.5;
+        .article-title h2 {
+            font-size: 1.5rem;
+            line-height: 1.5;
 
-                @media (min-width: 768px) {
-                    font-size: 1.6rem;
-                }
+            @media (min-width: 768px) {
+                font-size: 1.6rem;
             }
         }
 
@@ -23,7 +63,7 @@
     }
 }
 
-/* 페이지네이션 현재 페이지에 악센트 컬러 */
+/* ── 페이지네이션 ── */
 .pagination {
     .page-link {
         font-size: 1.4rem;
