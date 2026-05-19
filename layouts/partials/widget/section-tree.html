@@ -7,9 +7,11 @@
     </div>
     <h2 class="widget-title section-title">분류</h2>
 
+    {{- $excluded := slice "archives" "search" -}}
     <div class="section-tree--list">
         {{- range $context.Site.Sections -}}
             {{- $section := . -}}
+            {{- if in $excluded $section.Section -}}{{- continue -}}{{- end -}}
             {{- $postCount := len $section.RegularPagesRecursive -}}
             <div class="section-tree--item">
                 <a href="{{ $section.RelPermalink }}"
