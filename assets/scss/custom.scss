@@ -134,7 +134,71 @@
 }
 
 /* ════════════════════════════════════════
-   글 목록 카드
+   홈 2컬럼 그리드 레이아웃
+   ════════════════════════════════════════ */
+.article-list.-grid {
+    @media (min-width: 1024px) {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        align-items: stretch;
+        padding-top: 0;
+
+        article {
+            margin: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: var(--card-background);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            border: 1px solid var(--card-separator-color);
+
+            &:hover {
+                transform: translateY(-4px);
+                box-shadow: var(--shadow-l2);
+            }
+
+            .article-details {
+                padding: 20px 22px 22px;
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+            }
+
+            .article-title {
+                h2 {
+                    font-size: 1.6rem;
+                    line-height: 1.45;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                }
+            }
+
+            .article-subtitle {
+                font-size: 1.3rem;
+                line-height: 1.6;
+                color: var(--card-text-color-secondary);
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+                margin-top: 8px;
+            }
+
+            .article-meta {
+                margin-top: auto;
+                padding-top: 14px;
+            }
+        }
+    }
+}
+
+/* ════════════════════════════════════════
+   글 목록 카드 (일반)
    ════════════════════════════════════════ */
 .article-list {
     article {
@@ -168,6 +232,7 @@
         font-size: 1.35rem;
         min-width: 40px;
         padding: 8px 14px;
+        color: var(--card-text-color-secondary);
 
         &.current {
             background-color: var(--accent-color);
@@ -184,6 +249,11 @@
             flex: 0 0 40px;
         }
     }
+}
+
+[data-scheme="dark"] .pagination .page-link.current {
+    background-color: var(--accent-color);
+    color: #fff;
 }
 
 /* ════════════════════════════════════════
