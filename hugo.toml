@@ -64,9 +64,9 @@ hasCJKLanguage = true
 
     [params.comments.giscus]
         repo = "kastori1206/kastori1206.github.io"
-        repoID = ""
+        repoID = "R_kgDOG0eEcg"
         category = "Announcements"
-        categoryID = ""
+        categoryID = "DIC_kwDOG0eEcs4C9Zgp"
         mapping = "title"
         lightTheme = "light"
         darkTheme = "dark_dimmed"
