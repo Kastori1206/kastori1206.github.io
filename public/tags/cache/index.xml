@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Cache on kastori</title><link>https://blog.kastori.dev/tags/cache/</link><description>Recent content in Cache on kastori</description><generator>Hugo -- gohugo.io</generator><language>ko-kr</language><lastBuildDate>Tue, 19 May 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.kastori.dev/tags/cache/index.xml" rel="self" type="application/rss+xml"/><item><title>[Spring 완전 정복 #13] Spring Cache — @Cacheable로 DB 부하 줄이기, Redis 캐시 전략</title><link>https://blog.kastori.dev/posts/2026-05-19-spring-13-cache/</link><pubDate>Tue, 19 May 2026 00:00:00 +0000</pubDate><guid>https://blog.kastori.dev/posts/2026-05-19-spring-13-cache/</guid><description>&lt;h2 id="같은-데이터를-매번-db에서-가져와야-할까"&gt;&lt;a href="#%ea%b0%99%ec%9d%80-%eb%8d%b0%ec%9d%b4%ed%84%b0%eb%a5%bc-%eb%a7%a4%eb%b2%88-db%ec%97%90%ec%84%9c-%ea%b0%80%ec%a0%b8%ec%99%80%ec%95%bc-%ed%95%a0%ea%b9%8c" class="header-anchor"&gt;&lt;/a&gt;같은 데이터를 매번 DB에서 가져와야 할까?
+&lt;/h2&gt;&lt;p&gt;자주 조회되지만 잘 바뀌지 않는 데이터가 있다. 상품 카탈로그, 카테고리 목록, 설정값 같은 것들이다. 이런 데이터를 요청마다 DB에서 가져오는 것은 비효율적이다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;캐시&lt;/strong&gt;는 이 데이터를 메모리에 저장해두고, 다음 요청부터는 DB를 거치지 않고 메모리에서 반환한다. Spring Cache 추상화는 &lt;code&gt;@Cacheable&lt;/code&gt; 어노테이션 하나로 이 동작을 구현한다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="cacheable--캐시-조회--없으면-실행--저장"&gt;&lt;a href="#cacheable--%ec%ba%90%ec%8b%9c-%ec%a1%b0%ed%9a%8c--%ec%97%86%ec%9c%bc%eb%a9%b4-%ec%8b%a4%ed%96%89--%ec%a0%80%ec%9e%a5" class="header-anchor"&gt;&lt;/a&gt;@Cacheable — 캐시 조회 → 없으면 실행 → 저장
+&lt;/h2&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Service&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;ProductService&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@Cacheable&lt;/span&gt;(value &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;products&amp;#34;&lt;/span&gt;, key &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;#productId&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; ProductDto &lt;span style="color:#a6e22e"&gt;getProduct&lt;/span&gt;(Long productId) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// 캐시에 없을 때만 실행 (Cache Miss)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; productRepository.&lt;span style="color:#a6e22e"&gt;findById&lt;/span&gt;(productId)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;map&lt;/span&gt;(ProductDto::from)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;orElseThrow&lt;/span&gt;(() &lt;span style="color:#f92672"&gt;-&amp;gt;&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; ProductNotFoundException(productId));
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Configuration&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@EnableCaching&lt;/span&gt; &lt;span style="color:#75715e"&gt;// 캐시 활성화&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;CacheConfig&lt;/span&gt; { }
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;동작 흐름:&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;[첫 번째 호출]
+→ 캐시 조회 → Miss → 메서드 실행 → 결과를 캐시에 저장 → 반환
+
+[두 번째 이후]
+→ 캐시 조회 → Hit → 메서드 실행 없이 캐시 반환
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;키를 복합적으로 구성할 수 있다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Cacheable&lt;/span&gt;(value &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;products&amp;#34;&lt;/span&gt;, key &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;#category + &amp;#39;:&amp;#39; + #page&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; List&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;ProductDto&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;getProductsByCategory&lt;/span&gt;(String category, &lt;span style="color:#66d9ef"&gt;int&lt;/span&gt; page) { ... }
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;hr&gt;
+&lt;h2 id="cacheevict--데이터-수정-시-캐시-삭제"&gt;&lt;a href="#cacheevict--%eb%8d%b0%ec%9d%b4%ed%84%b0-%ec%88%98%ec%a0%95-%ec%8b%9c-%ec%ba%90%ec%8b%9c-%ec%82%ad%ec%a0%9c" class="header-anchor"&gt;&lt;/a&gt;@CacheEvict — 데이터 수정 시 캐시 삭제
+&lt;/h2&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@CacheEvict&lt;/span&gt;(value &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;products&amp;#34;&lt;/span&gt;, key &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;#productId&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;void&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;updateProduct&lt;/span&gt;(Long productId, ProductUpdateRequest request) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// 메서드 실행 후 캐시 삭제 (기본값)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// 다음 조회 시 DB에서 새 데이터를 가져와 캐시에 저장&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// 전체 삭제&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@CacheEvict&lt;/span&gt;(value &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;products&amp;#34;&lt;/span&gt;, allEntries &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;void&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;clearAllCache&lt;/span&gt;() { }
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;hr&gt;
+&lt;h2 id="cacheput--항상-실행--캐시-갱신"&gt;&lt;a href="#cacheput--%ed%95%ad%ec%83%81-%ec%8b%a4%ed%96%89--%ec%ba%90%ec%8b%9c-%ea%b0%b1%ec%8b%a0" class="header-anchor"&gt;&lt;/a&gt;@CachePut — 항상 실행 + 캐시 갱신
+&lt;/h2&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@CachePut&lt;/span&gt;(value &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;products&amp;#34;&lt;/span&gt;, key &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;#result.id&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; ProductDto &lt;span style="color:#a6e22e"&gt;createProduct&lt;/span&gt;(ProductCreateRequest request) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; Product saved &lt;span style="color:#f92672"&gt;=&lt;/span&gt; productRepository.&lt;span style="color:#a6e22e"&gt;save&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; Product(request));
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; ProductDto.&lt;span style="color:#a6e22e"&gt;from&lt;/span&gt;(saved); &lt;span style="color:#75715e"&gt;// 반환값이 캐시에 저장됨&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;code&gt;@Cacheable&lt;/code&gt;은 캐시에 있으면 실행을 건너뛰지만, &lt;code&gt;@CachePut&lt;/code&gt;은 항상 실행하고 결과로 캐시를 갱신한다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="로컬-캐시에서-redis로-교체"&gt;&lt;a href="#%eb%a1%9c%ec%bb%ac-%ec%ba%90%ec%8b%9c%ec%97%90%ec%84%9c-redis%eb%a1%9c-%ea%b5%90%ec%b2%b4" class="header-anchor"&gt;&lt;/a&gt;로컬 캐시에서 Redis로 교체
+&lt;/h2&gt;&lt;p&gt;Spring Cache는 추상화 레이어라 구현체를 쉽게 교체할 수 있다. 코드 변경 없이 &lt;code&gt;CacheManager&lt;/code&gt;만 바꾸면 된다.&lt;/p&gt;
+&lt;h3 id="로컬-캐시-기본"&gt;&lt;a href="#%eb%a1%9c%ec%bb%ac-%ec%ba%90%ec%8b%9c-%ea%b8%b0%eb%b3%b8" class="header-anchor"&gt;&lt;/a&gt;로컬 캐시 (기본)
+&lt;/h3&gt;&lt;p&gt;기본값은 &lt;code&gt;ConcurrentMapCacheManager&lt;/code&gt;다. 별도 설정 없이 동작하지만 서버가 여러 대면 서버마다 다른 캐시를 갖게 되어 데이터 불일치가 생긴다.&lt;/p&gt;
+&lt;h3 id="redis-캐시-다중-서버-환경"&gt;&lt;a href="#redis-%ec%ba%90%ec%8b%9c-%eb%8b%a4%ec%a4%91-%ec%84%9c%eb%b2%84-%ed%99%98%ea%b2%bd" class="header-anchor"&gt;&lt;/a&gt;Redis 캐시 (다중 서버 환경)
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-xml" data-lang="xml"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;org.springframework.boot&lt;span style="color:#f92672"&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;spring-boot-starter-data-redis&lt;span style="color:#f92672"&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-yaml" data-lang="yaml"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;spring&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;cache&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;type&lt;/span&gt;: &lt;span style="color:#ae81ff"&gt;redis&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;redis&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;time-to-live: 3600000 # 기본 TTL&lt;/span&gt;: &lt;span style="color:#ae81ff"&gt;1시간&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;캐시별로 TTL을 다르게 설정하려면:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Bean&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; RedisCacheManager &lt;span style="color:#a6e22e"&gt;cacheManager&lt;/span&gt;(RedisConnectionFactory factory) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; Map&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;String, RedisCacheConfiguration&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; configs &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; HashMap&lt;span style="color:#f92672"&gt;&amp;lt;&amp;gt;&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; configs.&lt;span style="color:#a6e22e"&gt;put&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;products&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; RedisCacheConfiguration.&lt;span style="color:#a6e22e"&gt;defaultCacheConfig&lt;/span&gt;()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;entryTtl&lt;/span&gt;(Duration.&lt;span style="color:#a6e22e"&gt;ofMinutes&lt;/span&gt;(30))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;serializeValuesWith&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; RedisSerializationContext.&lt;span style="color:#a6e22e"&gt;SerializationPair&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;fromSerializer&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; GenericJackson2JsonRedisSerializer())));
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; configs.&lt;span style="color:#a6e22e"&gt;put&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;users&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; RedisCacheConfiguration.&lt;span style="color:#a6e22e"&gt;defaultCacheConfig&lt;/span&gt;()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;entryTtl&lt;/span&gt;(Duration.&lt;span style="color:#a6e22e"&gt;ofHours&lt;/span&gt;(1)));
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; RedisCacheManager.&lt;span style="color:#a6e22e"&gt;builder&lt;/span&gt;(factory)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;withInitialCacheConfigurations&lt;/span&gt;(configs)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;build&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;hr&gt;
+&lt;h2 id="캐시-전략"&gt;&lt;a href="#%ec%ba%90%ec%8b%9c-%ec%a0%84%eb%9e%b5" class="header-anchor"&gt;&lt;/a&gt;캐시 전략
+&lt;/h2&gt;&lt;h3 id="cache-aside-lazy-loading--가장-일반적"&gt;&lt;a href="#cache-aside-lazy-loading--%ea%b0%80%ec%9e%a5-%ec%9d%bc%eb%b0%98%ec%a0%81" class="header-anchor"&gt;&lt;/a&gt;Cache-Aside (Lazy Loading) — 가장 일반적
+&lt;/h3&gt;&lt;pre tabindex="0"&gt;&lt;code&gt;읽기: 캐시 → Miss면 DB 조회 → 캐시 저장 → 반환
+쓰기: DB 업데이트 → 캐시 삭제 (다음 읽기 때 재적재)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Spring의 &lt;code&gt;@Cacheable&lt;/code&gt; + &lt;code&gt;@CacheEvict&lt;/code&gt; 패턴이 이것이다.&lt;/p&gt;
+&lt;h3 id="write-through"&gt;&lt;a href="#write-through" class="header-anchor"&gt;&lt;/a&gt;Write-Through
+&lt;/h3&gt;&lt;pre tabindex="0"&gt;&lt;code&gt;쓰기: DB 업데이트 + 캐시 동시 업데이트
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;code&gt;@CachePut&lt;/code&gt; 패턴이다. 읽기가 항상 캐시에서 이루어져 빠르지만, 잘 쓰지 않는 데이터도 캐시에 올라가 공간을 낭비할 수 있다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="주의사항-3가지"&gt;&lt;a href="#%ec%a3%bc%ec%9d%98%ec%82%ac%ed%95%ad-3%ea%b0%80%ec%a7%80" class="header-anchor"&gt;&lt;/a&gt;주의사항 3가지
+&lt;/h2&gt;&lt;h3 id="1-캐시-스탬피드"&gt;&lt;a href="#1-%ec%ba%90%ec%8b%9c-%ec%8a%a4%ed%83%ac%ed%94%bc%eb%93%9c" class="header-anchor"&gt;&lt;/a&gt;1. 캐시 스탬피드
+&lt;/h3&gt;&lt;p&gt;캐시가 만료되는 순간 대량의 요청이 동시에 DB로 몰리는 현상이다. TTL에 랜덤 jitter를 추가하거나 분산 락으로 하나의 요청만 DB를 조회하도록 처리한다.&lt;/p&gt;
+&lt;h3 id="2-캐시-무효화-누락"&gt;&lt;a href="#2-%ec%ba%90%ec%8b%9c-%eb%ac%b4%ed%9a%a8%ed%99%94-%eb%88%84%eb%9d%bd" class="header-anchor"&gt;&lt;/a&gt;2. 캐시 무효화 누락
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Transactional&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@CacheEvict&lt;/span&gt;(value &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;products&amp;#34;&lt;/span&gt;, key &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;#id&amp;#34;&lt;/span&gt;) &lt;span style="color:#75715e"&gt;// 잊으면 안 됨&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;void&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;updateProduct&lt;/span&gt;(Long id, ProductUpdateRequest request) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; productRepository.&lt;span style="color:#a6e22e"&gt;save&lt;/span&gt;(product.&lt;span style="color:#a6e22e"&gt;update&lt;/span&gt;(request));
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;데이터 수정 후 &lt;code&gt;@CacheEvict&lt;/code&gt;를 빠트리면 수정 전 데이터가 캐시에 남아 서비스한다.&lt;/p&gt;
+&lt;h3 id="3-자기-호출"&gt;&lt;a href="#3-%ec%9e%90%ea%b8%b0-%ed%98%b8%ec%b6%9c" class="header-anchor"&gt;&lt;/a&gt;3. 자기 호출
+&lt;/h3&gt;&lt;p&gt;&lt;code&gt;@Cacheable&lt;/code&gt;도 AOP 프록시로 동작한다. &lt;code&gt;@Transactional&lt;/code&gt;, &lt;code&gt;@Async&lt;/code&gt;와 동일하게 같은 클래스 내부에서 직접 호출하면 캐시가 적용되지 않는다.&lt;/p&gt;
+&lt;p&gt;Redis에 저장하는 DTO는 직렬화 가능해야 한다. Jackson JSON 직렬화 시 기본 생성자가 필요하다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="마치며"&gt;&lt;a href="#%eb%a7%88%ec%b9%98%eb%a9%b0" class="header-anchor"&gt;&lt;/a&gt;마치며
+&lt;/h2&gt;&lt;p&gt;Spring Cache의 핵심은 &lt;strong&gt;구현체 독립성&lt;/strong&gt;이다. 로컬 캐시에서 Redis로 교체할 때 &lt;code&gt;@Cacheable&lt;/code&gt; 코드는 전혀 바꾸지 않아도 된다. &lt;code&gt;@Cacheable&lt;/code&gt;(조회 캐시), &lt;code&gt;@CacheEvict&lt;/code&gt;(삭제), &lt;code&gt;@CachePut&lt;/code&gt;(갱신) 세 가지 어노테이션을 목적에 맞게 조합하고, 다중 서버 환경에서는 반드시 Redis 같은 분산 캐시를 사용해야 한다.&lt;/p&gt;
+&lt;p&gt;다음 편에서는 Spring Scheduling — &lt;code&gt;@Scheduled&lt;/code&gt;와 다중 서버 환경에서의 중복 실행 방지를 정리한다.&lt;/p&gt;</description></item></channel></rss>

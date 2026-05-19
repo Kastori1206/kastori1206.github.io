@@ -1,0 +1,511 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Jpa on kastori</title><link>https://blog.kastori.dev/tags/jpa/</link><description>Recent content in Jpa on kastori</description><generator>Hugo -- gohugo.io</generator><language>ko-kr</language><lastBuildDate>Tue, 19 May 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.kastori.dev/tags/jpa/index.xml" rel="self" type="application/rss+xml"/><item><title>[Spring 완전 정복 #6] Java 데이터 접근 기술의 진화 — JDBC에서 JPA까지, 왜 바뀌었나</title><link>https://blog.kastori.dev/posts/2026-05-19-spring-06-data-access-evolution/</link><pubDate>Tue, 19 May 2026 00:00:00 +0000</pubDate><guid>https://blog.kastori.dev/posts/2026-05-19-spring-06-data-access-evolution/</guid><description>&lt;h2 id="jpa-vs-mybatis-뭐가-더-낫나요"&gt;&lt;a href="#jpa-vs-mybatis-%eb%ad%90%ea%b0%80-%eb%8d%94-%eb%82%ab%eb%82%98%ec%9a%94" class="header-anchor"&gt;&lt;/a&gt;&amp;ldquo;JPA vs MyBatis 뭐가 더 낫나요?&amp;rdquo;
+&lt;/h2&gt;&lt;p&gt;이 질문의 답을 제대로 하려면 두 기술이 각각 어떤 문제를 해결하기 위해 등장했는지 알아야 한다. 역사를 따라가면 답이 보인다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="1단계-순수-jdbc--모든-것을-직접"&gt;&lt;a href="#1%eb%8b%a8%ea%b3%84-%ec%88%9c%ec%88%98-jdbc--%eb%aa%a8%eb%93%a0-%ea%b2%83%ec%9d%84-%ec%a7%81%ec%a0%91" class="header-anchor"&gt;&lt;/a&gt;1단계: 순수 JDBC — 모든 것을 직접
+&lt;/h2&gt;&lt;p&gt;Java에서 DB에 접근하는 가장 원시적인 방법이다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; Order &lt;span style="color:#a6e22e"&gt;findById&lt;/span&gt;(Long id) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; Connection conn &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;null&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; PreparedStatement pstmt &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;null&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ResultSet rs &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;null&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;try&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; conn &lt;span style="color:#f92672"&gt;=&lt;/span&gt; DriverManager.&lt;span style="color:#a6e22e"&gt;getConnection&lt;/span&gt;(URL, USER, PASSWORD);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; pstmt &lt;span style="color:#f92672"&gt;=&lt;/span&gt; conn.&lt;span style="color:#a6e22e"&gt;prepareStatement&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;SELECT * FROM orders WHERE id = ?&amp;#34;&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; pstmt.&lt;span style="color:#a6e22e"&gt;setLong&lt;/span&gt;(1, id);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; rs &lt;span style="color:#f92672"&gt;=&lt;/span&gt; pstmt.&lt;span style="color:#a6e22e"&gt;executeQuery&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; (rs.&lt;span style="color:#a6e22e"&gt;next&lt;/span&gt;()) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; Order order &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; Order();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; order.&lt;span style="color:#a6e22e"&gt;setId&lt;/span&gt;(rs.&lt;span style="color:#a6e22e"&gt;getLong&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;id&amp;#34;&lt;/span&gt;));
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; order.&lt;span style="color:#a6e22e"&gt;setStatus&lt;/span&gt;(rs.&lt;span style="color:#a6e22e"&gt;getString&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;status&amp;#34;&lt;/span&gt;));
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; order;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;null&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; } &lt;span style="color:#66d9ef"&gt;catch&lt;/span&gt; (SQLException e) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;throw&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; RuntimeException(e);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; } &lt;span style="color:#66d9ef"&gt;finally&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// 안 닫으면 커넥션 누수 — 매 메서드마다 이 코드가 반복&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; (rs &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;null&lt;/span&gt;) &lt;span style="color:#66d9ef"&gt;try&lt;/span&gt; { rs.&lt;span style="color:#a6e22e"&gt;close&lt;/span&gt;(); } &lt;span style="color:#66d9ef"&gt;catch&lt;/span&gt; (SQLException e) {}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; (pstmt &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;null&lt;/span&gt;) &lt;span style="color:#66d9ef"&gt;try&lt;/span&gt; { pstmt.&lt;span style="color:#a6e22e"&gt;close&lt;/span&gt;(); } &lt;span style="color:#66d9ef"&gt;catch&lt;/span&gt; (SQLException e) {}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; (conn &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;null&lt;/span&gt;) &lt;span style="color:#66d9ef"&gt;try&lt;/span&gt; { conn.&lt;span style="color:#a6e22e"&gt;close&lt;/span&gt;(); } &lt;span style="color:#66d9ef"&gt;catch&lt;/span&gt; (SQLException e) {}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;이 코드의 문제점이 한눈에 보인다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;커넥션 획득 → 쿼리 실행 → 결과 매핑 → 리소스 반납&lt;/strong&gt; 패턴이 모든 메서드에 반복된다.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;finally&lt;/code&gt;에서 리소스를 수동으로 닫아야 한다. 빠트리면 커넥션 풀 고갈.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;SQLException&lt;/code&gt;이 체크 예외라 모든 메서드가 예외를 처리하거나 throws해야 한다.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id="2단계-jdbctemplate--반복-코드-제거"&gt;&lt;a href="#2%eb%8b%a8%ea%b3%84-jdbctemplate--%eb%b0%98%eb%b3%b5-%ec%bd%94%eb%93%9c-%ec%a0%9c%ea%b1%b0" class="header-anchor"&gt;&lt;/a&gt;2단계: JdbcTemplate — 반복 코드 제거
+&lt;/h2&gt;&lt;p&gt;Spring이 JDBC의 반복 코드를 추상화한 것이 &lt;code&gt;JdbcTemplate&lt;/code&gt;이다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Repository&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;OrderRepository&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;final&lt;/span&gt; JdbcTemplate jdbcTemplate;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; Order &lt;span style="color:#a6e22e"&gt;findById&lt;/span&gt;(Long id) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; jdbcTemplate.&lt;span style="color:#a6e22e"&gt;queryForObject&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;SELECT * FROM orders WHERE id = ?&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; (rs, rowNum) &lt;span style="color:#f92672"&gt;-&amp;gt;&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; Order order &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; Order();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; order.&lt;span style="color:#a6e22e"&gt;setId&lt;/span&gt;(rs.&lt;span style="color:#a6e22e"&gt;getLong&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;id&amp;#34;&lt;/span&gt;));
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; order.&lt;span style="color:#a6e22e"&gt;setStatus&lt;/span&gt;(rs.&lt;span style="color:#a6e22e"&gt;getString&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;status&amp;#34;&lt;/span&gt;));
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; order;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; },
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; id
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; );
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;커넥션 획득/반납, &lt;code&gt;try-finally&lt;/code&gt;, &lt;code&gt;SQLException&lt;/code&gt; 처리가 사라졌다. Spring이 내부적으로 처리해준다. &lt;code&gt;SQLException&lt;/code&gt;은 Spring의 &lt;code&gt;DataAccessException&lt;/code&gt;(런타임 예외)으로 변환된다.&lt;/p&gt;
+&lt;p&gt;하지만 SQL은 여전히 직접 작성해야 하고, 결과를 객체에 매핑하는 &lt;code&gt;RowMapper&lt;/code&gt; 코드도 직접 써야 한다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="3단계-mybatis--sql을-코드에서-분리"&gt;&lt;a href="#3%eb%8b%a8%ea%b3%84-mybatis--sql%ec%9d%84-%ec%bd%94%eb%93%9c%ec%97%90%ec%84%9c-%eb%b6%84%eb%a6%ac" class="header-anchor"&gt;&lt;/a&gt;3단계: MyBatis — SQL을 코드에서 분리
+&lt;/h2&gt;&lt;p&gt;MyBatis는 SQL을 XML 파일로 분리하고, 결과 매핑을 자동화한다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-xml" data-lang="xml"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;&amp;lt;!-- OrderMapper.xml --&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;&amp;lt;mapper&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;namespace=&lt;/span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;com.example.mapper.OrderMapper&amp;#34;&lt;/span&gt;&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;resultMap&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;id=&lt;/span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;orderResultMap&amp;#34;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;type=&lt;/span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;Order&amp;#34;&lt;/span&gt;&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;id&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;property=&lt;/span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;id&amp;#34;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;column=&lt;/span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;id&amp;#34;&lt;/span&gt;&lt;span style="color:#f92672"&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;result&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;property=&lt;/span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;status&amp;#34;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;column=&lt;/span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;status&amp;#34;&lt;/span&gt;&lt;span style="color:#f92672"&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;result&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;property=&lt;/span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;memberId&amp;#34;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;column=&lt;/span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;member_id&amp;#34;&lt;/span&gt;&lt;span style="color:#f92672"&gt;/&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;/resultMap&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;select&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;id=&lt;/span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;findById&amp;#34;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;resultMap=&lt;/span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;orderResultMap&amp;#34;&lt;/span&gt;&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; SELECT id, status, member_id FROM orders WHERE id = #{id}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;/select&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;&amp;lt;/mapper&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Mapper&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;interface&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;OrderMapper&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; Order &lt;span style="color:#a6e22e"&gt;findById&lt;/span&gt;(Long id); &lt;span style="color:#75715e"&gt;// 인터페이스만 선언하면 구현체 자동 생성&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;MyBatis의 진짜 강점은 &lt;strong&gt;동적 쿼리&lt;/strong&gt;다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-xml" data-lang="xml"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;&amp;lt;select&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;id=&lt;/span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;findByCondition&amp;#34;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;resultMap=&lt;/span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;orderResultMap&amp;#34;&lt;/span&gt;&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; SELECT * FROM orders
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;where&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;test=&lt;/span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;status != null&amp;#34;&lt;/span&gt;&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt;AND status = #{status}&lt;span style="color:#f92672"&gt;&amp;lt;/if&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;test=&lt;/span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;memberId != null&amp;#34;&lt;/span&gt;&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt;AND member_id = #{memberId}&lt;span style="color:#f92672"&gt;&amp;lt;/if&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;/where&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;&amp;lt;/select&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;조건에 따라 WHERE절을 동적으로 구성하는 것이 직관적이다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="4단계-jpa--sql을-아예-작성하지-않는다"&gt;&lt;a href="#4%eb%8b%a8%ea%b3%84-jpa--sql%ec%9d%84-%ec%95%84%ec%98%88-%ec%9e%91%ec%84%b1%ed%95%98%ec%a7%80-%ec%95%8a%eb%8a%94%eb%8b%a4" class="header-anchor"&gt;&lt;/a&gt;4단계: JPA — SQL을 아예 작성하지 않는다
+&lt;/h2&gt;&lt;p&gt;JPA(ORM)는 SQL을 직접 작성하지 않고, &lt;strong&gt;객체 간 관계를 그대로 DB에 매핑&lt;/strong&gt;한다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Entity&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;Order&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@Id&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;@GeneratedValue&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; Long id;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@ManyToOne&lt;/span&gt;(fetch &lt;span style="color:#f92672"&gt;=&lt;/span&gt; FetchType.&lt;span style="color:#a6e22e"&gt;LAZY&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@JoinColumn&lt;/span&gt;(name &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;member_id&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; Member member;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// SQL 없이 CRUD&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;orderRepository.&lt;span style="color:#a6e22e"&gt;save&lt;/span&gt;(order); &lt;span style="color:#75715e"&gt;// INSERT 자동&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;orderRepository.&lt;span style="color:#a6e22e"&gt;findById&lt;/span&gt;(id); &lt;span style="color:#75715e"&gt;// SELECT 자동&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;order.&lt;span style="color:#a6e22e"&gt;setStatus&lt;/span&gt;(COMPLETED); &lt;span style="color:#75715e"&gt;// UPDATE 자동 (Dirty Checking)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;orderRepository.&lt;span style="color:#a6e22e"&gt;delete&lt;/span&gt;(order); &lt;span style="color:#75715e"&gt;// DELETE 자동&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;DB 벤더가 바뀌어도 코드 변경이 없다. 객체 관계를 그대로 코드로 표현할 수 있다.&lt;/p&gt;
+&lt;p&gt;단점도 있다. 학습 곡선이 높고(영속성 컨텍스트, 지연 로딩, N+1 등), 복잡한 집계·통계 쿼리는 JPQL이나 QueryDSL이 필요하다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="4가지-기술-한눈에-비교"&gt;&lt;a href="#4%ea%b0%80%ec%a7%80-%ea%b8%b0%ec%88%a0-%ed%95%9c%eb%88%88%ec%97%90-%eb%b9%84%ea%b5%90" class="header-anchor"&gt;&lt;/a&gt;4가지 기술 한눈에 비교
+&lt;/h2&gt;&lt;table&gt;
+ &lt;thead&gt;
+ &lt;tr&gt;
+ &lt;th&gt;기준&lt;/th&gt;
+ &lt;th&gt;JDBC&lt;/th&gt;
+ &lt;th&gt;JdbcTemplate&lt;/th&gt;
+ &lt;th&gt;MyBatis&lt;/th&gt;
+ &lt;th&gt;JPA&lt;/th&gt;
+ &lt;/tr&gt;
+ &lt;/thead&gt;
+ &lt;tbody&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;SQL 작성&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;직접&lt;/td&gt;
+ &lt;td&gt;직접&lt;/td&gt;
+ &lt;td&gt;직접 (XML)&lt;/td&gt;
+ &lt;td&gt;자동 생성&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;결과 매핑&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;수동&lt;/td&gt;
+ &lt;td&gt;RowMapper&lt;/td&gt;
+ &lt;td&gt;자동 (resultMap)&lt;/td&gt;
+ &lt;td&gt;자동&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;복잡한 쿼리&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;자유롭게&lt;/td&gt;
+ &lt;td&gt;자유롭게&lt;/td&gt;
+ &lt;td&gt;자유롭게 (동적 쿼리 강점)&lt;/td&gt;
+ &lt;td&gt;JPQL/QueryDSL 필요&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;DB 종속성&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;높음&lt;/td&gt;
+ &lt;td&gt;높음&lt;/td&gt;
+ &lt;td&gt;높음&lt;/td&gt;
+ &lt;td&gt;낮음&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;학습 난이도&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;낮음&lt;/td&gt;
+ &lt;td&gt;낮음&lt;/td&gt;
+ &lt;td&gt;중간&lt;/td&gt;
+ &lt;td&gt;높음&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;생산성&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;낮음&lt;/td&gt;
+ &lt;td&gt;중간&lt;/td&gt;
+ &lt;td&gt;중간&lt;/td&gt;
+ &lt;td&gt;높음 (단순 CRUD)&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr&gt;
+&lt;h2 id="jpa-vs-mybatis--이분법이-아니다"&gt;&lt;a href="#jpa-vs-mybatis--%ec%9d%b4%eb%b6%84%eb%b2%95%ec%9d%b4-%ec%95%84%eb%8b%88%eb%8b%a4" class="header-anchor"&gt;&lt;/a&gt;JPA vs MyBatis — 이분법이 아니다
+&lt;/h2&gt;&lt;p&gt;&amp;ldquo;JPA vs MyBatis&amp;quot;를 선택의 문제로 보는 건 틀린 프레임이다. 실무에서는 함께 쓰는 경우도 많고, 상황에 따라 선택이 다르다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;JPA가 유리한 경우&lt;/strong&gt;: 비즈니스 로직이 복잡하고 객체 중심 설계가 중요한 서비스, 단순 CRUD가 많은 경우.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;MyBatis가 유리한 경우&lt;/strong&gt;: 복잡한 통계·집계 쿼리가 많은 경우, DBA와 협업하며 SQL을 직접 관리해야 하는 경우, 레거시 DB 스키마에 맞춰야 하는 경우.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;실무에서 가장 많이 쓰는 조합&lt;/strong&gt;:&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;단순 CRUD → JPA Repository
+복잡한 조회 → QueryDSL (타입 안전한 JPQL 빌더)
+통계·집계 쿼리 → Native Query 또는 MyBatis (별도 모듈)
+&lt;/code&gt;&lt;/pre&gt;&lt;hr&gt;
+&lt;h2 id="jdbctemplate은-여전히-쓴다"&gt;&lt;a href="#jdbctemplate%ec%9d%80-%ec%97%ac%ec%a0%84%ed%9e%88-%ec%93%b4%eb%8b%a4" class="header-anchor"&gt;&lt;/a&gt;JdbcTemplate은 여전히 쓴다
+&lt;/h2&gt;&lt;p&gt;JPA 프로젝트에서도 JdbcTemplate이 필요한 상황이 있다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Repository&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;OrderBatchRepository&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;final&lt;/span&gt; JdbcTemplate jdbcTemplate;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// 수백만 건 상태 일괄 변경 — JPA Dirty Checking으로 하면 메모리 부족&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;void&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;bulkUpdateStatus&lt;/span&gt;(String oldStatus, String newStatus) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; jdbcTemplate.&lt;span style="color:#a6e22e"&gt;update&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;UPDATE orders SET status = ? WHERE status = ?&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; newStatus, oldStatus
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; );
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;JPA &lt;code&gt;@Modifying&lt;/code&gt;으로 안 되는 벌크 업데이트, Spring Batch 처리, 간단한 유틸리티 쿼리 등에서 여전히 활용된다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="마치며"&gt;&lt;a href="#%eb%a7%88%ec%b9%98%eb%a9%b0" class="header-anchor"&gt;&lt;/a&gt;마치며
+&lt;/h2&gt;&lt;p&gt;각 기술의 진화 방향은 &lt;strong&gt;반복 코드 제거 → SQL 관리 편의 → 객체 중심 개발&lt;/strong&gt;이었다. 이 흐름을 이해하면 &amp;ldquo;왜 JPA를 쓰는가&amp;quot;와 &amp;ldquo;언제 MyBatis가 더 나은가&amp;quot;를 맥락 있게 설명할 수 있다.&lt;/p&gt;
+&lt;p&gt;다음 편에서는 Spring Data JPA — 영속성 컨텍스트와 N+1 문제를 자세히 정리한다.&lt;/p&gt;</description></item><item><title>[Spring 완전 정복 #7] Spring Data JPA — 영속성 컨텍스트와 N+1 문제 완전 정리</title><link>https://blog.kastori.dev/posts/2026-05-19-spring-07-data-jpa-persistence-context/</link><pubDate>Tue, 19 May 2026 00:00:00 +0000</pubDate><guid>https://blog.kastori.dev/posts/2026-05-19-spring-07-data-jpa-persistence-context/</guid><description>&lt;h2 id="jpa-면접--영속성-컨텍스트--n1"&gt;&lt;a href="#jpa-%eb%a9%b4%ec%a0%91--%ec%98%81%ec%86%8d%ec%84%b1-%ec%bb%a8%ed%85%8d%ec%8a%a4%ed%8a%b8--n1" class="header-anchor"&gt;&lt;/a&gt;JPA 면접 = 영속성 컨텍스트 + N+1
+&lt;/h2&gt;&lt;p&gt;JPA 관련 면접 질문은 결국 두 가지로 수렴한다. &amp;ldquo;영속성 컨텍스트가 무엇인지 설명해보세요&amp;quot;와 &amp;ldquo;N+1 문제가 무엇이고 어떻게 해결하나요?&amp;rdquo;&lt;/p&gt;
+&lt;p&gt;이 두 가지를 이해하면 Dirty Checking, 지연 로딩, LazyInitializationException, N+1이 모두 연결된 하나의 그림으로 보인다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="jpa--hibernate--spring-data-jpa-관계"&gt;&lt;a href="#jpa--hibernate--spring-data-jpa-%ea%b4%80%ea%b3%84" class="header-anchor"&gt;&lt;/a&gt;JPA / Hibernate / Spring Data JPA 관계
+&lt;/h2&gt;&lt;pre tabindex="0"&gt;&lt;code&gt;JPA : Java ORM 표준 인터페이스 (명세)
+Hibernate : JPA의 대표 구현체 (Spring Boot 기본)
+Spring Data JPA : JPA를 더 편리하게 추상화한 Spring 모듈
+
+개발자 코드 → Spring Data JPA → JPA → Hibernate → JDBC → DB
+&lt;/code&gt;&lt;/pre&gt;&lt;hr&gt;
+&lt;h2 id="영속성-컨텍스트--jpa의-핵심"&gt;&lt;a href="#%ec%98%81%ec%86%8d%ec%84%b1-%ec%bb%a8%ed%85%8d%ec%8a%a4%ed%8a%b8--jpa%ec%9d%98-%ed%95%b5%ec%8b%ac" class="header-anchor"&gt;&lt;/a&gt;영속성 컨텍스트 — JPA의 핵심
+&lt;/h2&gt;&lt;p&gt;영속성 컨텍스트는 &lt;strong&gt;Entity 객체를 관리하는 1차 저장소&lt;/strong&gt;다. 트랜잭션당 하나씩 생성된다.&lt;/p&gt;
+&lt;h3 id="entity-생명주기"&gt;&lt;a href="#entity-%ec%83%9d%eb%aa%85%ec%a3%bc%ea%b8%b0" class="header-anchor"&gt;&lt;/a&gt;Entity 생명주기
+&lt;/h3&gt;&lt;pre tabindex="0"&gt;&lt;code&gt;비영속 : new Order() → 컨텍스트와 무관한 일반 객체
+영속 : save() 또는 조회 후 → 컨텍스트가 관리, 변경 감지 적용
+준영속 : 트랜잭션 종료 → 컨텍스트가 더 이상 관리 안 함
+삭제 : delete() → DELETE 예약
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id="1차-캐시"&gt;&lt;a href="#1%ec%b0%a8-%ec%ba%90%ec%8b%9c" class="header-anchor"&gt;&lt;/a&gt;1차 캐시
+&lt;/h3&gt;&lt;p&gt;같은 트랜잭션 안에서 같은 Entity를 두 번 조회하면 DB를 두 번 치지 않는다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;Order order1 &lt;span style="color:#f92672"&gt;=&lt;/span&gt; orderRepository.&lt;span style="color:#a6e22e"&gt;findById&lt;/span&gt;(1L); &lt;span style="color:#75715e"&gt;// DB 조회&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;Order order2 &lt;span style="color:#f92672"&gt;=&lt;/span&gt; orderRepository.&lt;span style="color:#a6e22e"&gt;findById&lt;/span&gt;(1L); &lt;span style="color:#75715e"&gt;// 1차 캐시에서 반환 — DB 조회 없음&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;order1 &lt;span style="color:#f92672"&gt;==&lt;/span&gt; order2 &lt;span style="color:#75715e"&gt;// true — 동일 객체 보장&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="dirty-checking--save-없이-update"&gt;&lt;a href="#dirty-checking--save-%ec%97%86%ec%9d%b4-update" class="header-anchor"&gt;&lt;/a&gt;Dirty Checking — save() 없이 UPDATE
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Transactional&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;void&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;updateOrder&lt;/span&gt;(Long id, String newStatus) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; Order order &lt;span style="color:#f92672"&gt;=&lt;/span&gt; orderRepository.&lt;span style="color:#a6e22e"&gt;findById&lt;/span&gt;(id).&lt;span style="color:#a6e22e"&gt;get&lt;/span&gt;(); &lt;span style="color:#75715e"&gt;// 영속 상태&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; order.&lt;span style="color:#a6e22e"&gt;setStatus&lt;/span&gt;(newStatus); &lt;span style="color:#75715e"&gt;// setter만 호출&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// save() 없어도 트랜잭션 종료 시 UPDATE 자동 실행&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;영속성 컨텍스트는 Entity를 조회할 때 스냅샷을 저장한다. 트랜잭션 종료 시 현재 상태와 스냅샷을 비교해 변경이 있으면 UPDATE를 자동으로 실행한다. 이것이 Dirty Checking이다.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;readOnly = true&lt;/code&gt; 트랜잭션에서는 스냅샷을 저장하지 않아 성능이 향상된다. 조회 메서드에 &lt;code&gt;@Transactional(readOnly = true)&lt;/code&gt;를 붙이는 이유다.&lt;/p&gt;
+&lt;h3 id="지연-쓰기-write-behind"&gt;&lt;a href="#%ec%a7%80%ec%97%b0-%ec%93%b0%ea%b8%b0-write-behind" class="header-anchor"&gt;&lt;/a&gt;지연 쓰기 (Write-behind)
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Transactional&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;void&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;saveOrders&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; orderRepository.&lt;span style="color:#a6e22e"&gt;save&lt;/span&gt;(order1); &lt;span style="color:#75715e"&gt;// INSERT 예약&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; orderRepository.&lt;span style="color:#a6e22e"&gt;save&lt;/span&gt;(order2); &lt;span style="color:#75715e"&gt;// INSERT 예약&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; orderRepository.&lt;span style="color:#a6e22e"&gt;save&lt;/span&gt;(order3); &lt;span style="color:#75715e"&gt;// INSERT 예약&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// 트랜잭션 커밋 시 INSERT 3개 한번에 실행&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;쿼리를 모아뒀다가 커밋 직전에 한번에 DB로 보내 네트워크 왕복 횟수를 줄인다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="지연-로딩--필요할-때만-조회"&gt;&lt;a href="#%ec%a7%80%ec%97%b0-%eb%a1%9c%eb%94%a9--%ed%95%84%ec%9a%94%ed%95%a0-%eb%95%8c%eb%a7%8c-%ec%a1%b0%ed%9a%8c" class="header-anchor"&gt;&lt;/a&gt;지연 로딩 — 필요할 때만 조회
+&lt;/h2&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Entity&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;Order&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@ManyToOne&lt;/span&gt;(fetch &lt;span style="color:#f92672"&gt;=&lt;/span&gt; FetchType.&lt;span style="color:#a6e22e"&gt;LAZY&lt;/span&gt;) &lt;span style="color:#75715e"&gt;// 지연 로딩&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@JoinColumn&lt;/span&gt;(name &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;member_id&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; Member member;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;code&gt;FetchType.LAZY&lt;/code&gt;는 Order를 조회해도 Member는 즉시 가져오지 않는다. &lt;code&gt;order.getMember()&lt;/code&gt;를 호출하는 순간 DB 조회가 발생한다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;기본값 주의&lt;/strong&gt;: &lt;code&gt;@ManyToOne&lt;/code&gt;, &lt;code&gt;@OneToOne&lt;/code&gt;의 기본값은 &lt;code&gt;EAGER&lt;/code&gt;(즉시 로딩)다. 필요한 연관 데이터를 항상 함께 가져와 N+1을 유발할 수 있다. &lt;strong&gt;항상 LAZY로 명시적으로 변경하는 것을 권장한다.&lt;/strong&gt;&lt;/p&gt;
+&lt;h3 id="lazyinitializationexception"&gt;&lt;a href="#lazyinitializationexception" class="header-anchor"&gt;&lt;/a&gt;LazyInitializationException
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Transactional&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; Order &lt;span style="color:#a6e22e"&gt;getOrder&lt;/span&gt;(Long id) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; orderRepository.&lt;span style="color:#a6e22e"&gt;findById&lt;/span&gt;(id).&lt;span style="color:#a6e22e"&gt;get&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;} &lt;span style="color:#75715e"&gt;// 트랜잭션 종료 → 영속성 컨텍스트 닫힘&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// 컨트롤러에서&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;Order order &lt;span style="color:#f92672"&gt;=&lt;/span&gt; orderService.&lt;span style="color:#a6e22e"&gt;getOrder&lt;/span&gt;(1L);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;order.&lt;span style="color:#a6e22e"&gt;getMember&lt;/span&gt;().&lt;span style="color:#a6e22e"&gt;getName&lt;/span&gt;(); &lt;span style="color:#75715e"&gt;// LazyInitializationException!&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;트랜잭션이 끝나면 영속성 컨텍스트가 닫힌다. 이 상태에서 LAZY 로딩을 시도하면 컨텍스트가 없어 예외가 발생한다. 해결책은 트랜잭션 안에서 필요한 데이터를 미리 로딩하거나 Fetch Join을 쓰는 것이다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="n1-문제--jpa의-가장-흔한-함정"&gt;&lt;a href="#n1-%eb%ac%b8%ec%a0%9c--jpa%ec%9d%98-%ea%b0%80%ec%9e%a5-%ed%9d%94%ed%95%9c-%ed%95%a8%ec%a0%95" class="header-anchor"&gt;&lt;/a&gt;N+1 문제 — JPA의 가장 흔한 함정
+&lt;/h2&gt;&lt;h3 id="원인"&gt;&lt;a href="#%ec%9b%90%ec%9d%b8" class="header-anchor"&gt;&lt;/a&gt;원인
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;List&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;Order&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; orders &lt;span style="color:#f92672"&gt;=&lt;/span&gt; orderRepository.&lt;span style="color:#a6e22e"&gt;findAll&lt;/span&gt;(); &lt;span style="color:#75715e"&gt;// 쿼리 1번 (N개 Order 조회)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;for&lt;/span&gt; (Order order : orders) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; System.&lt;span style="color:#a6e22e"&gt;out&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;println&lt;/span&gt;(order.&lt;span style="color:#a6e22e"&gt;getMember&lt;/span&gt;().&lt;span style="color:#a6e22e"&gt;getName&lt;/span&gt;()); &lt;span style="color:#75715e"&gt;// 주문마다 Member 조회 N번&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// 총 1 + N번 쿼리&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Order가 100개면 쿼리가 101번 실행된다. 이것이 N+1 문제다.&lt;/p&gt;
+&lt;h3 id="해결-방법-1-fetch-join"&gt;&lt;a href="#%ed%95%b4%ea%b2%b0-%eb%b0%a9%eb%b2%95-1-fetch-join" class="header-anchor"&gt;&lt;/a&gt;해결 방법 1: Fetch Join
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Query&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;SELECT o FROM Order o JOIN FETCH o.member&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;List&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;Order&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;findAllWithMember&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-sql" data-lang="sql"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;-- 실행 쿼리 (1번)
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;SELECT&lt;/span&gt; o.&lt;span style="color:#f92672"&gt;*&lt;/span&gt;, m.&lt;span style="color:#f92672"&gt;*&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;FROM&lt;/span&gt; orders o &lt;span style="color:#66d9ef"&gt;INNER&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;JOIN&lt;/span&gt; member m &lt;span style="color:#66d9ef"&gt;ON&lt;/span&gt; o.member_id &lt;span style="color:#f92672"&gt;=&lt;/span&gt; m.id
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Order와 Member를 JOIN 한 번으로 가져온다. 단, &lt;code&gt;@OneToMany&lt;/code&gt; 컬렉션 Fetch Join + 페이징은 메모리에서 처리하므로 위험하다.&lt;/p&gt;
+&lt;h3 id="해결-방법-2-entitygraph"&gt;&lt;a href="#%ed%95%b4%ea%b2%b0-%eb%b0%a9%eb%b2%95-2-entitygraph" class="header-anchor"&gt;&lt;/a&gt;해결 방법 2: @EntityGraph
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@EntityGraph&lt;/span&gt;(attributePaths &lt;span style="color:#f92672"&gt;=&lt;/span&gt; {&lt;span style="color:#e6db74"&gt;&amp;#34;member&amp;#34;&lt;/span&gt;})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Query&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;SELECT o FROM Order o&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;List&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;Order&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;findAllWithMember&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Fetch Join과 동일하게 동작하지만 어노테이션으로 간결하게 표현.&lt;/p&gt;
+&lt;h3 id="해결-방법-3-batchsize-컬렉션--페이징"&gt;&lt;a href="#%ed%95%b4%ea%b2%b0-%eb%b0%a9%eb%b2%95-3-batchsize-%ec%bb%ac%eb%a0%89%ec%85%98--%ed%8e%98%ec%9d%b4%ec%a7%95" class="header-anchor"&gt;&lt;/a&gt;해결 방법 3: @BatchSize (컬렉션 + 페이징)
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@BatchSize&lt;/span&gt;(size &lt;span style="color:#f92672"&gt;=&lt;/span&gt; 100)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@OneToMany&lt;/span&gt;(mappedBy &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;order&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; List&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;OrderItem&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; items;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-sql" data-lang="sql"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;-- N번 쿼리 대신 IN절로 묶어서 실행
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;SELECT&lt;/span&gt; &lt;span style="color:#f92672"&gt;*&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;FROM&lt;/span&gt; order_item &lt;span style="color:#66d9ef"&gt;WHERE&lt;/span&gt; order_id &lt;span style="color:#66d9ef"&gt;IN&lt;/span&gt; (&lt;span style="color:#ae81ff"&gt;1&lt;/span&gt;, &lt;span style="color:#ae81ff"&gt;2&lt;/span&gt;, &lt;span style="color:#ae81ff"&gt;3&lt;/span&gt;, ..., &lt;span style="color:#ae81ff"&gt;100&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;code&gt;default_batch_fetch_size&lt;/code&gt;를 전역 설정하면 모든 컬렉션에 적용된다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-yaml" data-lang="yaml"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;spring&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;jpa&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;properties&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;hibernate&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;default_batch_fetch_size&lt;/span&gt;: &lt;span style="color:#ae81ff"&gt;100&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;컬렉션 페이징 + 연관 데이터 조회&lt;/strong&gt;에 가장 실용적인 해결책이다.&lt;/p&gt;
+&lt;h3 id="선택-기준"&gt;&lt;a href="#%ec%84%a0%ed%83%9d-%ea%b8%b0%ec%a4%80" class="header-anchor"&gt;&lt;/a&gt;선택 기준
+&lt;/h3&gt;&lt;pre tabindex="0"&gt;&lt;code&gt;ToOne 관계 (ManyToOne, OneToOne) → Fetch Join / @EntityGraph
+컬렉션 + 페이징 필요 → @BatchSize (전역 설정 권장)
+복잡한 조회 → QueryDSL + Fetch Join
+&lt;/code&gt;&lt;/pre&gt;&lt;hr&gt;
+&lt;h2 id="연관관계-주인--mappedby-규칙"&gt;&lt;a href="#%ec%97%b0%ea%b4%80%ea%b4%80%ea%b3%84-%ec%a3%bc%ec%9d%b8--mappedby-%ea%b7%9c%ec%b9%99" class="header-anchor"&gt;&lt;/a&gt;연관관계 주인 — mappedBy 규칙
+&lt;/h2&gt;&lt;p&gt;양방향 관계에서 외래 키를 관리하는 쪽이 &lt;strong&gt;연관관계의 주인&lt;/strong&gt;이다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// Order (주인) — @JoinColumn 있음, 외래 키 실제 관리&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@ManyToOne&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@JoinColumn&lt;/span&gt;(name &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;member_id&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; Member member;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// Member (주인 아님) — mappedBy로 읽기 전용 선언&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@OneToMany&lt;/span&gt;(mappedBy &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;member&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; List&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;Order&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; orders &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; ArrayList&lt;span style="color:#f92672"&gt;&amp;lt;&amp;gt;&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;주인에게만 값을 설정해야 DB에 반영된다.&lt;/strong&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;order.&lt;span style="color:#a6e22e"&gt;setMember&lt;/span&gt;(member); &lt;span style="color:#75715e"&gt;// DB에 반영됨 ← 주인&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;member.&lt;span style="color:#a6e22e"&gt;getOrders&lt;/span&gt;().&lt;span style="color:#a6e22e"&gt;add&lt;/span&gt;(order); &lt;span style="color:#75715e"&gt;// DB 반영 안 됨 (읽기 전용)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;hr&gt;
+&lt;h2 id="실무-활용--entity-auditing"&gt;&lt;a href="#%ec%8b%a4%eb%ac%b4-%ed%99%9c%ec%9a%a9--entity-auditing" class="header-anchor"&gt;&lt;/a&gt;실무 활용 — Entity Auditing
+&lt;/h2&gt;&lt;p&gt;생성일시·수정일시를 자동 관리한다. 거의 모든 Entity에 적용하는 패턴이다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@MappedSuperclass&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@EntityListeners&lt;/span&gt;(AuditingEntityListener.&lt;span style="color:#a6e22e"&gt;class&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;abstract&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;BaseEntity&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@CreatedDate&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@Column&lt;/span&gt;(updatable &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;false&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; LocalDateTime createdAt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@LastModifiedDate&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; LocalDateTime updatedAt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Entity&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;Order&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;extends&lt;/span&gt; BaseEntity { ... }
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;code&gt;@SpringBootApplication&lt;/code&gt;에 &lt;code&gt;@EnableJpaAuditing&lt;/code&gt;을 추가하면 된다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="마치며"&gt;&lt;a href="#%eb%a7%88%ec%b9%98%eb%a9%b0" class="header-anchor"&gt;&lt;/a&gt;마치며
+&lt;/h2&gt;&lt;p&gt;영속성 컨텍스트를 이해하면 JPA의 동작 방식이 논리적으로 연결된다.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Dirty Checking&lt;/strong&gt;: 스냅샷 비교 → save() 없이 UPDATE&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;1차 캐시&lt;/strong&gt;: 같은 트랜잭션 내 동일 Entity 재조회 최적화&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;N+1&lt;/strong&gt;: LAZY 로딩이 반복 호출될 때 발생 → Fetch Join, @BatchSize로 해결&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;LazyInitializationException&lt;/strong&gt;: 트랜잭션 밖에서 LAZY 로딩 시도 → 트랜잭션 안에서 미리 로딩&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;다음 편에서는 Spring 쿼리 기술 — JPQL, Criteria API, QueryDSL을 비교한다.&lt;/p&gt;</description></item><item><title>[Spring 완전 정복 #8] QueryDSL이 실무 표준인 이유 — JPQL의 한계와 타입 안전한 동적 쿼리</title><link>https://blog.kastori.dev/posts/2026-05-19-spring-08-querydsl/</link><pubDate>Tue, 19 May 2026 00:00:00 +0000</pubDate><guid>https://blog.kastori.dev/posts/2026-05-19-spring-08-querydsl/</guid><description>&lt;h2 id="jpql의-불편함--오타가-런타임에-터진다"&gt;&lt;a href="#jpql%ec%9d%98-%eb%b6%88%ed%8e%b8%ed%95%a8--%ec%98%a4%ed%83%80%ea%b0%80-%eb%9f%b0%ed%83%80%ec%9e%84%ec%97%90-%ed%84%b0%ec%a7%84%eb%8b%a4" class="header-anchor"&gt;&lt;/a&gt;JPQL의 불편함 — 오타가 런타임에 터진다
+&lt;/h2&gt;&lt;p&gt;JPA Repository의 쿼리 메서드로 해결되지 않는 복잡한 조회는 &lt;code&gt;@Query&lt;/code&gt;로 JPQL을 직접 작성한다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Query&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;SELECT o FROM Order o WHERE o.member.id = :memberId AND o.status = :status&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;List&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;Order&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;findByMemberAndStatus&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;@Param&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;memberId&amp;#34;&lt;/span&gt;) Long memberId,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@Param&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;status&amp;#34;&lt;/span&gt;) OrderStatus status);
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;이 방식의 문제가 있다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;컴파일 타임에 오류를 잡을 수 없다.&lt;/strong&gt; &lt;code&gt;o.member.id&lt;/code&gt;를 &lt;code&gt;o.member.idx&lt;/code&gt;로 오타를 내도 컴파일은 된다. 런타임에 쿼리가 실행되는 순간에야 오류가 난다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;동적 쿼리가 불편하다.&lt;/strong&gt; 조건이 있을 수도 없을 수도 있는 검색 기능을 JPQL로 만들려면 조건마다 쿼리 문자열을 조합해야 한다.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;리팩터링에 취약하다.&lt;/strong&gt; 엔티티 필드명을 바꾸면 문자열 안의 JPQL도 직접 찾아서 수정해야 한다.&lt;/p&gt;
+&lt;p&gt;QueryDSL은 이 문제를 해결한다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="querydsl이란"&gt;&lt;a href="#querydsl%ec%9d%b4%eb%9e%80" class="header-anchor"&gt;&lt;/a&gt;QueryDSL이란
+&lt;/h2&gt;&lt;p&gt;QueryDSL은 Java 코드로 SQL처럼 읽히는, 타입 안전한 쿼리를 작성하게 해주는 라이브러리다.&lt;/p&gt;
+&lt;p&gt;빌드 시 엔티티 클래스로부터 &lt;strong&gt;Q클래스를 자동 생성&lt;/strong&gt;한다. &lt;code&gt;Order&lt;/code&gt; 엔티티가 있으면 &lt;code&gt;QOrder&lt;/code&gt;가 생성된다. Q클래스의 필드는 엔티티 필드와 1:1 대응한다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;QOrder order &lt;span style="color:#f92672"&gt;=&lt;/span&gt; QOrder.&lt;span style="color:#a6e22e"&gt;order&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;QMember member &lt;span style="color:#f92672"&gt;=&lt;/span&gt; QMember.&lt;span style="color:#a6e22e"&gt;member&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// 자바 코드로 쿼리를 작성 — 컴파일 타임 타입 체크&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;queryFactory
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;selectFrom&lt;/span&gt;(order)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;join&lt;/span&gt;(order.&lt;span style="color:#a6e22e"&gt;member&lt;/span&gt;, member).&lt;span style="color:#a6e22e"&gt;fetchJoin&lt;/span&gt;()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;where&lt;/span&gt;(order.&lt;span style="color:#a6e22e"&gt;status&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;eq&lt;/span&gt;(OrderStatus.&lt;span style="color:#a6e22e"&gt;COMPLETED&lt;/span&gt;))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;orderBy&lt;/span&gt;(order.&lt;span style="color:#a6e22e"&gt;createdAt&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;desc&lt;/span&gt;())
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;fetch&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;code&gt;order.status.eq(OrderStatus.COMPLETED)&lt;/code&gt; — &lt;code&gt;order.status&lt;/code&gt;는 Q클래스의 타입 안전한 필드다. 오타를 내면 컴파일 오류가 발생한다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="기본-설정"&gt;&lt;a href="#%ea%b8%b0%eb%b3%b8-%ec%84%a4%ec%a0%95" class="header-anchor"&gt;&lt;/a&gt;기본 설정
+&lt;/h2&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-xml" data-lang="xml"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;com.querydsl&lt;span style="color:#f92672"&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;querydsl-jpa&lt;span style="color:#f92672"&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;classifier&amp;gt;&lt;/span&gt;jakarta&lt;span style="color:#f92672"&gt;&amp;lt;/classifier&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Configuration&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;QueryDslConfig&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@Bean&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; JPAQueryFactory &lt;span style="color:#a6e22e"&gt;jpaQueryFactory&lt;/span&gt;(EntityManager em) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; JPAQueryFactory(em);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;hr&gt;
+&lt;h2 id="동적-쿼리--querydsl의-핵심-강점"&gt;&lt;a href="#%eb%8f%99%ec%a0%81-%ec%bf%bc%eb%a6%ac--querydsl%ec%9d%98-%ed%95%b5%ec%8b%ac-%ea%b0%95%ec%a0%90" class="header-anchor"&gt;&lt;/a&gt;동적 쿼리 — QueryDSL의 핵심 강점
+&lt;/h2&gt;&lt;p&gt;검색 조건이 선택적으로 적용되는 동적 쿼리가 QueryDSL의 진짜 강점이다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Repository&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@RequiredArgsConstructor&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;OrderQueryRepository&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;final&lt;/span&gt; JPAQueryFactory queryFactory;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; List&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;Order&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;findByCondition&lt;/span&gt;(OrderSearchCondition cond) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; queryFactory
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;selectFrom&lt;/span&gt;(order)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;join&lt;/span&gt;(order.&lt;span style="color:#a6e22e"&gt;member&lt;/span&gt;, member).&lt;span style="color:#a6e22e"&gt;fetchJoin&lt;/span&gt;()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;where&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; statusEq(cond.&lt;span style="color:#a6e22e"&gt;getStatus&lt;/span&gt;()),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; memberIdEq(cond.&lt;span style="color:#a6e22e"&gt;getMemberId&lt;/span&gt;())
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; )
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;fetch&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// BooleanExpression — null 반환 시 WHERE 조건에서 자동 제외&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; BooleanExpression &lt;span style="color:#a6e22e"&gt;statusEq&lt;/span&gt;(OrderStatus status) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; status &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;null&lt;/span&gt; &lt;span style="color:#f92672"&gt;?&lt;/span&gt; order.&lt;span style="color:#a6e22e"&gt;status&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;eq&lt;/span&gt;(status) : &lt;span style="color:#66d9ef"&gt;null&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; BooleanExpression &lt;span style="color:#a6e22e"&gt;memberIdEq&lt;/span&gt;(Long memberId) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; memberId &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;null&lt;/span&gt; &lt;span style="color:#f92672"&gt;?&lt;/span&gt; order.&lt;span style="color:#a6e22e"&gt;member&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;id&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;eq&lt;/span&gt;(memberId) : &lt;span style="color:#66d9ef"&gt;null&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;code&gt;BooleanExpression&lt;/code&gt;을 반환하는 메서드로 분리하면 두 가지 이점이 있다. null을 반환하면 WHERE 조건에서 자동으로 제외된다. 그리고 이 조건 메서드를 여러 쿼리에서 &lt;strong&gt;재사용&lt;/strong&gt;할 수 있다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="dto-직접-조회--필요한-필드만"&gt;&lt;a href="#dto-%ec%a7%81%ec%a0%91-%ec%a1%b0%ed%9a%8c--%ed%95%84%ec%9a%94%ed%95%9c-%ed%95%84%eb%93%9c%eb%a7%8c" class="header-anchor"&gt;&lt;/a&gt;DTO 직접 조회 — 필요한 필드만
+&lt;/h2&gt;&lt;p&gt;엔티티 전체가 아닌 필요한 컬럼만 DTO로 조회할 때 &lt;code&gt;@QueryProjection&lt;/code&gt;을 사용한다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@QueryProjection&lt;/span&gt; &lt;span style="color:#75715e"&gt;// DTO 생성자에 붙이면 QOrderSummary 자동 생성&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;OrderSummary&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; Long orderId;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; String memberName;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; OrderStatus status;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@QueryProjection&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;OrderSummary&lt;/span&gt;(Long orderId, String memberName, OrderStatus status) { ... }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; List&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;OrderSummary&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;findSummary&lt;/span&gt;(OrderStatus status) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; queryFactory
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;select&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; QOrderSummary(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; order.&lt;span style="color:#a6e22e"&gt;id&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; order.&lt;span style="color:#a6e22e"&gt;member&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;name&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; order.&lt;span style="color:#a6e22e"&gt;status&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;from&lt;/span&gt;(order)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;join&lt;/span&gt;(order.&lt;span style="color:#a6e22e"&gt;member&lt;/span&gt;, member)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;where&lt;/span&gt;(statusEq(status))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;fetch&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;DTO 생성자 파라미터도 타입 안전하게 체크된다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="페이징-최적화"&gt;&lt;a href="#%ed%8e%98%ec%9d%b4%ec%a7%95-%ec%b5%9c%ec%a0%81%ed%99%94" class="header-anchor"&gt;&lt;/a&gt;페이징 최적화
+&lt;/h2&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; Page&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;OrderSummary&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;findSummaryPage&lt;/span&gt;(OrderStatus status, Pageable pageable) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; List&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;OrderSummary&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; content &lt;span style="color:#f92672"&gt;=&lt;/span&gt; queryFactory
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;select&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; QOrderSummary(order.&lt;span style="color:#a6e22e"&gt;id&lt;/span&gt;, order.&lt;span style="color:#a6e22e"&gt;member&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;name&lt;/span&gt;, order.&lt;span style="color:#a6e22e"&gt;status&lt;/span&gt;))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;from&lt;/span&gt;(order)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;join&lt;/span&gt;(order.&lt;span style="color:#a6e22e"&gt;member&lt;/span&gt;, member)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;where&lt;/span&gt;(statusEq(status))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;offset&lt;/span&gt;(pageable.&lt;span style="color:#a6e22e"&gt;getOffset&lt;/span&gt;())
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;limit&lt;/span&gt;(pageable.&lt;span style="color:#a6e22e"&gt;getPageSize&lt;/span&gt;())
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;fetch&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// count 쿼리 분리 (최적화)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; JPAQuery&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;Long&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; countQuery &lt;span style="color:#f92672"&gt;=&lt;/span&gt; queryFactory
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;select&lt;/span&gt;(order.&lt;span style="color:#a6e22e"&gt;count&lt;/span&gt;())
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;from&lt;/span&gt;(order)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;where&lt;/span&gt;(statusEq(status));
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; PageableExecutionUtils.&lt;span style="color:#a6e22e"&gt;getPage&lt;/span&gt;(content, pageable, countQuery::fetchOne);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;code&gt;PageableExecutionUtils.getPage()&lt;/code&gt;는 마지막 페이지이거나 첫 페이지에서 결과가 pageSize보다 적으면 count 쿼리를 실행하지 않는다. 불필요한 COUNT 쿼리를 줄이는 최적화다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="repository-구조-패턴"&gt;&lt;a href="#repository-%ea%b5%ac%ec%a1%b0-%ed%8c%a8%ed%84%b4" class="header-anchor"&gt;&lt;/a&gt;Repository 구조 패턴
+&lt;/h2&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// 1. 기본 JPA Repository + 커스텀 인터페이스&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;interface&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;OrderRepository&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;extends&lt;/span&gt; JpaRepository&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;Order, Long&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; OrderRepositoryCustom { }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// 2. 커스텀 인터페이스 선언&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;interface&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;OrderRepositoryCustom&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; List&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;OrderSummary&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;findByCondition&lt;/span&gt;(OrderSearchCondition cond);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// 3. QueryDSL 구현체&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Repository&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;OrderRepositoryImpl&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;implements&lt;/span&gt; OrderRepositoryCustom {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;final&lt;/span&gt; JPAQueryFactory queryFactory;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// QueryDSL 쿼리 구현&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;단순 CRUD는 &lt;code&gt;JpaRepository&lt;/code&gt;가, 복잡한 조회는 &lt;code&gt;OrderRepositoryImpl&lt;/code&gt;이 담당하는 역할 분리다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="언제-무엇을-쓸까"&gt;&lt;a href="#%ec%96%b8%ec%a0%9c-%eb%ac%b4%ec%97%87%ec%9d%84-%ec%93%b8%ea%b9%8c" class="header-anchor"&gt;&lt;/a&gt;언제 무엇을 쓸까
+&lt;/h2&gt;&lt;pre tabindex="0"&gt;&lt;code&gt;단순 조회 → JPA 쿼리 메서드 (findByStatus, findByMemberId)
+조건 1~2개 → @Query (JPQL)
+동적 쿼리 / 복잡한 조인 / DTO 조회 → QueryDSL ← 실무 표준
+DB 특화 함수 / 성능 힌트 → Native Query
+대용량 통계·배치 → MyBatis (별도 모듈)
+&lt;/code&gt;&lt;/pre&gt;&lt;table&gt;
+ &lt;thead&gt;
+ &lt;tr&gt;
+ &lt;th&gt;기준&lt;/th&gt;
+ &lt;th&gt;JPQL&lt;/th&gt;
+ &lt;th&gt;QueryDSL&lt;/th&gt;
+ &lt;th&gt;Native Query&lt;/th&gt;
+ &lt;/tr&gt;
+ &lt;/thead&gt;
+ &lt;tbody&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;타입 안전성&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;❌ 문자열&lt;/td&gt;
+ &lt;td&gt;✅ Q클래스&lt;/td&gt;
+ &lt;td&gt;❌ 문자열&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;동적 쿼리&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;불편&lt;/td&gt;
+ &lt;td&gt;✅ BooleanExpression&lt;/td&gt;
+ &lt;td&gt;불편&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;DB 특화 기능&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;❌&lt;/td&gt;
+ &lt;td&gt;❌&lt;/td&gt;
+ &lt;td&gt;✅&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;tr&gt;
+ &lt;td&gt;&lt;strong&gt;DTO 조회&lt;/strong&gt;&lt;/td&gt;
+ &lt;td&gt;new 키워드 (불편)&lt;/td&gt;
+ &lt;td&gt;✅ @QueryProjection&lt;/td&gt;
+ &lt;td&gt;수동 매핑&lt;/td&gt;
+ &lt;/tr&gt;
+ &lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr&gt;
+&lt;h2 id="마치며"&gt;&lt;a href="#%eb%a7%88%ec%b9%98%eb%a9%b0" class="header-anchor"&gt;&lt;/a&gt;마치며
+&lt;/h2&gt;&lt;p&gt;QueryDSL이 실무 표준이 된 이유는 명확하다. JPQL의 문자열 기반 한계를 타입 안전한 Java 코드로 대체하고, 동적 쿼리를 &lt;code&gt;BooleanExpression&lt;/code&gt; 패턴으로 깔끔하게 처리한다.&lt;/p&gt;
+&lt;p&gt;다음 편에서는 Spring Security — 인증/인가와 JWT 구현을 정리한다.&lt;/p&gt;</description></item></channel></rss>

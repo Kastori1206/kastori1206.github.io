@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Shedlock on kastori</title><link>https://blog.kastori.dev/tags/shedlock/</link><description>Recent content in Shedlock on kastori</description><generator>Hugo -- gohugo.io</generator><language>ko-kr</language><lastBuildDate>Tue, 19 May 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.kastori.dev/tags/shedlock/index.xml" rel="self" type="application/rss+xml"/><item><title>[Spring 완전 정복 #14] Spring @Scheduled — cron 표현식과 다중 서버 중복 실행 방지</title><link>https://blog.kastori.dev/posts/2026-05-19-spring-14-scheduling/</link><pubDate>Tue, 19 May 2026 00:00:00 +0000</pubDate><guid>https://blog.kastori.dev/posts/2026-05-19-spring-14-scheduling/</guid><description>&lt;h2 id="매일-새벽-2시에-배치를-실행하려면"&gt;&lt;a href="#%eb%a7%a4%ec%9d%bc-%ec%83%88%eb%b2%bd-2%ec%8b%9c%ec%97%90-%eb%b0%b0%ec%b9%98%eb%a5%bc-%ec%8b%a4%ed%96%89%ed%95%98%eb%a0%a4%eb%a9%b4" class="header-anchor"&gt;&lt;/a&gt;매일 새벽 2시에 배치를 실행하려면
+&lt;/h2&gt;&lt;p&gt;통계 집계, 만료 데이터 정리, 리포트 생성 같은 작업은 주기적으로 실행해야 한다. Spring &lt;code&gt;@Scheduled&lt;/code&gt;는 메서드에 어노테이션 하나만 붙여서 이런 작업을 등록할 수 있다.&lt;/p&gt;
+&lt;p&gt;단 하나의 함정이 있다. &lt;strong&gt;서버가 여러 대라면 모든 서버가 동시에 실행한다.&lt;/strong&gt;&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="기본-설정"&gt;&lt;a href="#%ea%b8%b0%eb%b3%b8-%ec%84%a4%ec%a0%95" class="header-anchor"&gt;&lt;/a&gt;기본 설정
+&lt;/h2&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Configuration&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@EnableScheduling&lt;/span&gt; &lt;span style="color:#75715e"&gt;// 스케줄링 활성화&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;SchedulingConfig&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// 기본값은 단일 스레드 — 독립 실행이 필요하면 풀 설정&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@Bean&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; TaskScheduler &lt;span style="color:#a6e22e"&gt;taskScheduler&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ThreadPoolTaskScheduler scheduler &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; ThreadPoolTaskScheduler();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; scheduler.&lt;span style="color:#a6e22e"&gt;setPoolSize&lt;/span&gt;(5);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; scheduler.&lt;span style="color:#a6e22e"&gt;setThreadNamePrefix&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;scheduled-&amp;#34;&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; scheduler.&lt;span style="color:#a6e22e"&gt;initialize&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; scheduler;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;기본값이 단일 스레드라는 점을 기억해두자. 스케줄 메서드 A가 10초 걸리면 B는 A가 끝날 때까지 대기한다. 독립적으로 실행돼야 한다면 위처럼 스레드 풀을 설정해야 한다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="세-가지-실행-방식"&gt;&lt;a href="#%ec%84%b8-%ea%b0%80%ec%a7%80-%ec%8b%a4%ed%96%89-%eb%b0%a9%ec%8b%9d" class="header-anchor"&gt;&lt;/a&gt;세 가지 실행 방식
+&lt;/h2&gt;&lt;h3 id="fixedrate--시작-시점-기준"&gt;&lt;a href="#fixedrate--%ec%8b%9c%ec%9e%91-%ec%8b%9c%ec%a0%90-%ea%b8%b0%ec%a4%80" class="header-anchor"&gt;&lt;/a&gt;fixedRate — 시작 시점 기준
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Scheduled&lt;/span&gt;(fixedRate &lt;span style="color:#f92672"&gt;=&lt;/span&gt; 5000) &lt;span style="color:#75715e"&gt;// 5초마다 (이전 실행 시작으로부터)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;void&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;fixedRateTask&lt;/span&gt;() { ... }
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;pre tabindex="0"&gt;&lt;code&gt;실행 시작: 0초
+실행 완료: 3초
+다음 시작: 5초 (0초 + 5초)
+다음 시작: 10초 (5초 + 5초)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;실행 시간이 주기를 초과하면 다음 실행이 겹칠 수 있다(스레드 풀이 있을 때).&lt;/p&gt;
+&lt;h3 id="fixeddelay--완료-시점-기준"&gt;&lt;a href="#fixeddelay--%ec%99%84%eb%a3%8c-%ec%8b%9c%ec%a0%90-%ea%b8%b0%ec%a4%80" class="header-anchor"&gt;&lt;/a&gt;fixedDelay — 완료 시점 기준
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Scheduled&lt;/span&gt;(fixedDelay &lt;span style="color:#f92672"&gt;=&lt;/span&gt; 5000) &lt;span style="color:#75715e"&gt;// 이전 실행 완료 후 5초&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;void&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;fixedDelayTask&lt;/span&gt;() { ... }
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;pre tabindex="0"&gt;&lt;code&gt;실행 시작: 0초
+실행 완료: 3초
+다음 시작: 8초 (3초 완료 + 5초)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;실행이 아무리 오래 걸려도 완료 후 5초 뒤에 시작한다. 겹칠 위험이 없다.&lt;/p&gt;
+&lt;h3 id="cron--특정-시각에-실행"&gt;&lt;a href="#cron--%ed%8a%b9%ec%a0%95-%ec%8b%9c%ea%b0%81%ec%97%90-%ec%8b%a4%ed%96%89" class="header-anchor"&gt;&lt;/a&gt;cron — 특정 시각에 실행
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Scheduled&lt;/span&gt;(cron &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;0 0 2 * * *&amp;#34;&lt;/span&gt;) &lt;span style="color:#75715e"&gt;// 매일 새벽 2시&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;void&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dailyBatchJob&lt;/span&gt;() { ... }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Scheduled&lt;/span&gt;(cron &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;0 */30 9-18 * * MON-FRI&amp;#34;&lt;/span&gt;) &lt;span style="color:#75715e"&gt;// 평일 9~18시 30분마다&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;void&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;businessHoursTask&lt;/span&gt;() { ... }
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="크론-표현식-구조"&gt;&lt;a href="#%ed%81%ac%eb%a1%a0-%ed%91%9c%ed%98%84%ec%8b%9d-%ea%b5%ac%ec%a1%b0" class="header-anchor"&gt;&lt;/a&gt;크론 표현식 구조
+&lt;/h3&gt;&lt;pre tabindex="0"&gt;&lt;code&gt;초 분 시 일 월 요일
+0 0 2 * * * → 매일 02:00:00
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;자주 쓰는 표현:&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;&amp;#34;0 0 * * * *&amp;#34; // 매 시간 정각
+&amp;#34;0 0 0 * * *&amp;#34; // 매일 자정
+&amp;#34;0 0 0 1 * *&amp;#34; // 매월 1일 자정
+&amp;#34;0 0 9 * * MON-FRI&amp;#34; // 평일 오전 9시
+&amp;#34;0 */5 * * * *&amp;#34; // 5분마다
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id="환경별-cron-분리"&gt;&lt;a href="#%ed%99%98%ea%b2%bd%eb%b3%84-cron-%eb%b6%84%eb%a6%ac" class="header-anchor"&gt;&lt;/a&gt;환경별 cron 분리
+&lt;/h3&gt;&lt;p&gt;로컬에서는 빠르게 테스트하고, 운영에서는 실제 스케줄을 적용한다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-yaml" data-lang="yaml"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;# application.yml&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;schedule&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;daily-batch&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;cron&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;0 0 2 * * *&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;# application-local.yml&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;schedule&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;daily-batch&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;cron&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;0 */1 * * * *&amp;#34;&lt;/span&gt; &lt;span style="color:#75715e"&gt;# 1분마다 테스트&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Scheduled&lt;/span&gt;(cron &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;${schedule.daily-batch.cron}&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;void&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dailyBatch&lt;/span&gt;() { ... }
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;hr&gt;
+&lt;h2 id="다중-서버-환경의-중복-실행-문제"&gt;&lt;a href="#%eb%8b%a4%ec%a4%91-%ec%84%9c%eb%b2%84-%ed%99%98%ea%b2%bd%ec%9d%98-%ec%a4%91%eb%b3%b5-%ec%8b%a4%ed%96%89-%eb%ac%b8%ec%a0%9c" class="header-anchor"&gt;&lt;/a&gt;다중 서버 환경의 중복 실행 문제
+&lt;/h2&gt;&lt;p&gt;서버가 3대면 새벽 2시에 배치가 3번 실행된다.&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;서버 A ─┐
+서버 B ─┼─ 모두 02:00에 dailyBatch() 실행 → 데이터 3번 처리
+서버 C ─┘
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id="해결-shedlock"&gt;&lt;a href="#%ed%95%b4%ea%b2%b0-shedlock" class="header-anchor"&gt;&lt;/a&gt;해결: ShedLock
+&lt;/h3&gt;&lt;p&gt;DB나 Redis를 락 저장소로 사용해 &lt;strong&gt;단 하나의 서버만&lt;/strong&gt; 실행을 보장한다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-xml" data-lang="xml"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;net.javacrumbs.shedlock&lt;span style="color:#f92672"&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;shedlock-spring&lt;span style="color:#f92672"&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;&amp;lt;dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;groupId&amp;gt;&lt;/span&gt;net.javacrumbs.shedlock&lt;span style="color:#f92672"&gt;&amp;lt;/groupId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#f92672"&gt;&amp;lt;artifactId&amp;gt;&lt;/span&gt;shedlock-provider-jdbc-template&lt;span style="color:#f92672"&gt;&amp;lt;/artifactId&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#f92672"&gt;&amp;lt;/dependency&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-sql" data-lang="sql"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;-- 락 테이블 (MySQL)
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;CREATE&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;TABLE&lt;/span&gt; shedlock (
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; name VARCHAR(&lt;span style="color:#ae81ff"&gt;64&lt;/span&gt;) &lt;span style="color:#66d9ef"&gt;NOT&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;NULL&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; lock_until &lt;span style="color:#66d9ef"&gt;TIMESTAMP&lt;/span&gt;(&lt;span style="color:#ae81ff"&gt;3&lt;/span&gt;) &lt;span style="color:#66d9ef"&gt;NOT&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;NULL&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; locked_at &lt;span style="color:#66d9ef"&gt;TIMESTAMP&lt;/span&gt;(&lt;span style="color:#ae81ff"&gt;3&lt;/span&gt;) &lt;span style="color:#66d9ef"&gt;NOT&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;NULL&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; locked_by VARCHAR(&lt;span style="color:#ae81ff"&gt;255&lt;/span&gt;) &lt;span style="color:#66d9ef"&gt;NOT&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;NULL&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;PRIMARY&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;KEY&lt;/span&gt; (name)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Configuration&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@EnableScheduling&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@EnableSchedulerLock&lt;/span&gt;(defaultLockAtMostFor &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;10m&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;SchedulingConfig&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@Bean&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; LockProvider &lt;span style="color:#a6e22e"&gt;lockProvider&lt;/span&gt;(DataSource dataSource) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; JdbcTemplateLockProvider(dataSource);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Service&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;BatchJobService&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@Scheduled&lt;/span&gt;(cron &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;0 0 2 * * *&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@SchedulerLock&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; name &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;dailyBatchJob&amp;#34;&lt;/span&gt;, &lt;span style="color:#75715e"&gt;// 유니크한 락 이름&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; lockAtLeastFor &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;5m&amp;#34;&lt;/span&gt;, &lt;span style="color:#75715e"&gt;// 빠르게 끝나도 5분간 락 유지 (중복 방지)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; lockAtMostFor &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;30m&amp;#34;&lt;/span&gt; &lt;span style="color:#75715e"&gt;// 서버가 죽어도 30분 후 자동 해제&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; )
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;void&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dailyBatchJob&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// 이 서버만 실행 — 다른 서버는 락을 잡지 못해 건너뜀&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; processOrders();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;code&gt;lockAtMostFor&lt;/code&gt;이 중요하다. 서버가 배치 실행 중에 죽으면 DB의 락 레코드가 남아있게 된다. 이 설정이 있어야 일정 시간 후 락이 자동으로 해제된다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="주의사항"&gt;&lt;a href="#%ec%a3%bc%ec%9d%98%ec%82%ac%ed%95%ad" class="header-anchor"&gt;&lt;/a&gt;주의사항
+&lt;/h2&gt;&lt;h3 id="예외는-반드시-잡는다"&gt;&lt;a href="#%ec%98%88%ec%99%b8%eb%8a%94-%eb%b0%98%eb%93%9c%ec%8b%9c-%ec%9e%a1%eb%8a%94%eb%8b%a4" class="header-anchor"&gt;&lt;/a&gt;예외는 반드시 잡는다
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Scheduled&lt;/span&gt;(cron &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;0 0 2 * * *&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;void&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dailyBatch&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;try&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; processBatch();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; } &lt;span style="color:#66d9ef"&gt;catch&lt;/span&gt; (Exception e) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; log.&lt;span style="color:#a6e22e"&gt;error&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;배치 실패&amp;#34;&lt;/span&gt;, e);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; alertService.&lt;span style="color:#a6e22e"&gt;sendAlert&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;dailyBatch 실패: &amp;#34;&lt;/span&gt; &lt;span style="color:#f92672"&gt;+&lt;/span&gt; e.&lt;span style="color:#a6e22e"&gt;getMessage&lt;/span&gt;());
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;예외가 전파되면 다음 실행이 안 될 수 있다. 항상 try-catch로 잡고 알림을 보내는 것이 좋다.&lt;/p&gt;
+&lt;h3 id="트랜잭션은-서비스에-위임"&gt;&lt;a href="#%ed%8a%b8%eb%9e%9c%ec%9e%ad%ec%85%98%ec%9d%80-%ec%84%9c%eb%b9%84%ec%8a%a4%ec%97%90-%ec%9c%84%ec%9e%84" class="header-anchor"&gt;&lt;/a&gt;트랜잭션은 서비스에 위임
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Scheduled&lt;/span&gt;(cron &lt;span style="color:#f92672"&gt;=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;0 0 2 * * *&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;void&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dailyBatch&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; batchService.&lt;span style="color:#a6e22e"&gt;processDailyOrders&lt;/span&gt;(); &lt;span style="color:#75715e"&gt;// @Transactional이 있는 서비스에 위임&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;code&gt;@Scheduled&lt;/code&gt;는 트랜잭션을 자동으로 걸지 않는다. 필요하면 &lt;code&gt;@Transactional&lt;/code&gt;을 추가하거나 서비스 레이어에 위임한다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="마치며"&gt;&lt;a href="#%eb%a7%88%ec%b9%98%eb%a9%b0" class="header-anchor"&gt;&lt;/a&gt;마치며
+&lt;/h2&gt;&lt;p&gt;단일 서버라면 &lt;code&gt;@Scheduled&lt;/code&gt;만으로 충분하다. 다중 서버 환경이라면 중복 실행 방지가 필수다. &lt;strong&gt;ShedLock&lt;/strong&gt;이 가장 간단한 해결책이다. DB에 락 레코드를 남기는 방식이라 별도 인프라 없이 사용할 수 있다. 복잡한 잡 관리(의존성, 재시도, 히스토리)가 필요하다면 Quartz를 고려한다.&lt;/p&gt;
+&lt;p&gt;Spring 시리즈 마지막 편이다. Servlet 기초부터 스케줄링까지 14편을 통해 Spring의 핵심 구조를 정리했다.&lt;/p&gt;</description></item></channel></rss>

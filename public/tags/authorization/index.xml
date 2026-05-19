@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Authorization on kastori</title><link>https://blog.kastori.dev/tags/authorization/</link><description>Recent content in Authorization on kastori</description><generator>Hugo -- gohugo.io</generator><language>ko-kr</language><lastBuildDate>Tue, 19 May 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://blog.kastori.dev/tags/authorization/index.xml" rel="self" type="application/rss+xml"/><item><title>[Spring 완전 정복 #9] Spring Security + JWT 구현 — 인증 흐름부터 토큰 검증까지</title><link>https://blog.kastori.dev/posts/2026-05-19-spring-09-security-jwt/</link><pubDate>Tue, 19 May 2026 00:00:00 +0000</pubDate><guid>https://blog.kastori.dev/posts/2026-05-19-spring-09-security-jwt/</guid><description>&lt;h2 id="인증과-인가--순서가-있다"&gt;&lt;a href="#%ec%9d%b8%ec%a6%9d%ea%b3%bc-%ec%9d%b8%ea%b0%80--%ec%88%9c%ec%84%9c%ea%b0%80-%ec%9e%88%eb%8b%a4" class="header-anchor"&gt;&lt;/a&gt;인증과 인가 — 순서가 있다
+&lt;/h2&gt;&lt;p&gt;Spring Security를 다루기 전에 개념을 먼저 정리한다.&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;인증 (Authentication) : &amp;#34;당신이 누구인지&amp;#34; 확인 → 로그인
+인가 (Authorization) : &amp;#34;당신이 무엇을 할 수 있는지&amp;#34; 확인 → 권한 체크
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;순서는 항상 &lt;strong&gt;인증 → 인가&lt;/strong&gt;다. 누구인지 확인도 안 된 상태에서 권한을 체크할 수 없다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="spring-security-전체-구조"&gt;&lt;a href="#spring-security-%ec%a0%84%ec%b2%b4-%ea%b5%ac%ec%a1%b0" class="header-anchor"&gt;&lt;/a&gt;Spring Security 전체 구조
+&lt;/h2&gt;&lt;p&gt;HTTP 요청이 Controller에 닿기 전에 Spring Security의 필터 체인이 먼저 처리한다.&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;HTTP 요청
+ ↓
+DelegatingFilterProxy ← Servlet Container에 등록된 진입점
+ ↓
+FilterChainProxy ← Spring Security 필터 체인 관리
+ ↓
+SecurityFilterChain ← 실제 보안 필터들
+ ├── JwtAuthenticationFilter (JWT 검증 — 커스텀)
+ ├── UsernamePasswordAuthenticationFilter (폼 로그인)
+ ├── ExceptionTranslationFilter (인증/인가 예외 처리)
+ └── FilterSecurityInterceptor (URL 기반 인가)
+ ↓
+DispatcherServlet
+ ↓
+Controller
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;code&gt;DelegatingFilterProxy&lt;/code&gt;는 Servlet Container 레벨의 Filter이지만 내부적으로 Spring Bean인 &lt;code&gt;FilterChainProxy&lt;/code&gt;에 처리를 위임한다. Servlet Container와 Spring Context를 연결하는 다리 역할이다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="securityfilterchain-설정-spring-boot-3x"&gt;&lt;a href="#securityfilterchain-%ec%84%a4%ec%a0%95-spring-boot-3x" class="header-anchor"&gt;&lt;/a&gt;SecurityFilterChain 설정 (Spring Boot 3.x)
+&lt;/h2&gt;&lt;p&gt;&lt;code&gt;WebSecurityConfigurerAdapter&lt;/code&gt;는 deprecated됐다. Spring Boot 3.x에서는 &lt;code&gt;SecurityFilterChain&lt;/code&gt; Bean을 직접 등록한다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Configuration&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@EnableWebSecurity&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@EnableMethodSecurity&lt;/span&gt; &lt;span style="color:#75715e"&gt;// @PreAuthorize 활성화&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;SecurityConfig&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@Bean&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; SecurityFilterChain &lt;span style="color:#a6e22e"&gt;filterChain&lt;/span&gt;(HttpSecurity http) &lt;span style="color:#66d9ef"&gt;throws&lt;/span&gt; Exception {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; http
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;csrf&lt;/span&gt;(csrf &lt;span style="color:#f92672"&gt;-&amp;gt;&lt;/span&gt; csrf.&lt;span style="color:#a6e22e"&gt;disable&lt;/span&gt;()) &lt;span style="color:#75715e"&gt;// JWT + Stateless → CSRF 불필요&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;sessionManagement&lt;/span&gt;(session &lt;span style="color:#f92672"&gt;-&amp;gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; session.&lt;span style="color:#a6e22e"&gt;sessionCreationPolicy&lt;/span&gt;(SessionCreationPolicy.&lt;span style="color:#a6e22e"&gt;STATELESS&lt;/span&gt;))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;authorizeHttpRequests&lt;/span&gt;(auth &lt;span style="color:#f92672"&gt;-&amp;gt;&lt;/span&gt; auth
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;requestMatchers&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;/api/auth/**&amp;#34;&lt;/span&gt;).&lt;span style="color:#a6e22e"&gt;permitAll&lt;/span&gt;() &lt;span style="color:#75715e"&gt;// 로그인, 회원가입&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;requestMatchers&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;/api/admin/**&amp;#34;&lt;/span&gt;).&lt;span style="color:#a6e22e"&gt;hasRole&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;ADMIN&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;requestMatchers&lt;/span&gt;(HttpMethod.&lt;span style="color:#a6e22e"&gt;GET&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;/api/posts/**&amp;#34;&lt;/span&gt;).&lt;span style="color:#a6e22e"&gt;permitAll&lt;/span&gt;()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;anyRequest&lt;/span&gt;().&lt;span style="color:#a6e22e"&gt;authenticated&lt;/span&gt;()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; )
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;addFilterBefore&lt;/span&gt;(jwtAuthenticationFilter,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; UsernamePasswordAuthenticationFilter.&lt;span style="color:#a6e22e"&gt;class&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;exceptionHandling&lt;/span&gt;(ex &lt;span style="color:#f92672"&gt;-&amp;gt;&lt;/span&gt; ex
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;authenticationEntryPoint&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; HttpStatusEntryPoint(HttpStatus.&lt;span style="color:#a6e22e"&gt;UNAUTHORIZED&lt;/span&gt;)));
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; http.&lt;span style="color:#a6e22e"&gt;build&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@Bean&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; PasswordEncoder &lt;span style="color:#a6e22e"&gt;passwordEncoder&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; BCryptPasswordEncoder();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;hr&gt;
+&lt;h2 id="폼-로그인-인증-흐름"&gt;&lt;a href="#%ed%8f%bc-%eb%a1%9c%ea%b7%b8%ec%9d%b8-%ec%9d%b8%ec%a6%9d-%ed%9d%90%eb%a6%84" class="header-anchor"&gt;&lt;/a&gt;폼 로그인 인증 흐름
+&lt;/h2&gt;&lt;p&gt;로그인 요청이 처리되는 전체 흐름이다.&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;[1] POST /login (username, password)
+[2] UsernamePasswordAuthenticationFilter → 미인증 토큰 생성
+[3] AuthenticationManager (ProviderManager) → 인증 Provider 목록 순회
+[4] DaoAuthenticationProvider → UserDetailsService 호출
+[5] UserDetailsService → DB 조회 → UserDetails 반환
+[6] PasswordEncoder.matches(입력PW, 저장된해시PW) 검증
+[7] 인증 성공 → Authentication 객체 생성 → SecurityContext 저장
+&lt;/code&gt;&lt;/pre&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Service&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@RequiredArgsConstructor&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;CustomUserDetailsService&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;implements&lt;/span&gt; UserDetailsService {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;final&lt;/span&gt; MemberRepository memberRepository;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@Override&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; UserDetails &lt;span style="color:#a6e22e"&gt;loadUserByUsername&lt;/span&gt;(String username) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; Member member &lt;span style="color:#f92672"&gt;=&lt;/span&gt; memberRepository.&lt;span style="color:#a6e22e"&gt;findByEmail&lt;/span&gt;(username)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;orElseThrow&lt;/span&gt;(() &lt;span style="color:#f92672"&gt;-&amp;gt;&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; UsernameNotFoundException(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;사용자를 찾을 수 없습니다: &amp;#34;&lt;/span&gt; &lt;span style="color:#f92672"&gt;+&lt;/span&gt; username));
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; User.&lt;span style="color:#a6e22e"&gt;builder&lt;/span&gt;()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;username&lt;/span&gt;(member.&lt;span style="color:#a6e22e"&gt;getEmail&lt;/span&gt;())
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;password&lt;/span&gt;(member.&lt;span style="color:#a6e22e"&gt;getPassword&lt;/span&gt;()) &lt;span style="color:#75715e"&gt;// BCrypt 해시&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;roles&lt;/span&gt;(member.&lt;span style="color:#a6e22e"&gt;getRole&lt;/span&gt;().&lt;span style="color:#a6e22e"&gt;name&lt;/span&gt;()) &lt;span style="color:#75715e"&gt;// &amp;#34;USER&amp;#34; → &amp;#34;ROLE_USER&amp;#34; 자동 변환&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;build&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;hr&gt;
+&lt;h2 id="jwt-인증-구현"&gt;&lt;a href="#jwt-%ec%9d%b8%ec%a6%9d-%ea%b5%ac%ed%98%84" class="header-anchor"&gt;&lt;/a&gt;JWT 인증 구현
+&lt;/h2&gt;&lt;h3 id="토큰-생성검증"&gt;&lt;a href="#%ed%86%a0%ed%81%b0-%ec%83%9d%ec%84%b1%ea%b2%80%ec%a6%9d" class="header-anchor"&gt;&lt;/a&gt;토큰 생성/검증
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Component&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;JwtTokenProvider&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@Value&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;${jwt.secret}&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; String secretKey;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@Value&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;${jwt.expiration}&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;long&lt;/span&gt; expiration;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; String &lt;span style="color:#a6e22e"&gt;generateToken&lt;/span&gt;(Authentication authentication) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; Jwts.&lt;span style="color:#a6e22e"&gt;builder&lt;/span&gt;()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;setSubject&lt;/span&gt;(authentication.&lt;span style="color:#a6e22e"&gt;getName&lt;/span&gt;())
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;setIssuedAt&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; Date())
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;setExpiration&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; Date(System.&lt;span style="color:#a6e22e"&gt;currentTimeMillis&lt;/span&gt;() &lt;span style="color:#f92672"&gt;+&lt;/span&gt; expiration))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;signWith&lt;/span&gt;(getSigningKey(), SignatureAlgorithm.&lt;span style="color:#a6e22e"&gt;HS256&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;compact&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; String &lt;span style="color:#a6e22e"&gt;getUsernameFromToken&lt;/span&gt;(String token) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; Jwts.&lt;span style="color:#a6e22e"&gt;parserBuilder&lt;/span&gt;()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;setSigningKey&lt;/span&gt;(getSigningKey())
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;build&lt;/span&gt;()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;parseClaimsJws&lt;/span&gt;(token)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;getBody&lt;/span&gt;()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;getSubject&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;boolean&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;validateToken&lt;/span&gt;(String token) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;try&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; Jwts.&lt;span style="color:#a6e22e"&gt;parserBuilder&lt;/span&gt;().&lt;span style="color:#a6e22e"&gt;setSigningKey&lt;/span&gt;(getSigningKey()).&lt;span style="color:#a6e22e"&gt;build&lt;/span&gt;()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; .&lt;span style="color:#a6e22e"&gt;parseClaimsJws&lt;/span&gt;(token);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; } &lt;span style="color:#66d9ef"&gt;catch&lt;/span&gt; (ExpiredJwtException e) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;throw&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; CustomException(ErrorCode.&lt;span style="color:#a6e22e"&gt;TOKEN_EXPIRED&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; } &lt;span style="color:#66d9ef"&gt;catch&lt;/span&gt; (JwtException e) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;throw&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; CustomException(ErrorCode.&lt;span style="color:#a6e22e"&gt;INVALID_TOKEN&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; Key &lt;span style="color:#a6e22e"&gt;getSigningKey&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; Keys.&lt;span style="color:#a6e22e"&gt;hmacShaKeyFor&lt;/span&gt;(secretKey.&lt;span style="color:#a6e22e"&gt;getBytes&lt;/span&gt;(StandardCharsets.&lt;span style="color:#a6e22e"&gt;UTF_8&lt;/span&gt;));
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="jwt-인증-필터"&gt;&lt;a href="#jwt-%ec%9d%b8%ec%a6%9d-%ed%95%84%ed%84%b0" class="header-anchor"&gt;&lt;/a&gt;JWT 인증 필터
+&lt;/h3&gt;&lt;p&gt;매 요청마다 토큰을 검증하고 SecurityContext에 인증 정보를 설정한다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Component&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@RequiredArgsConstructor&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;JwtAuthenticationFilter&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;extends&lt;/span&gt; OncePerRequestFilter {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;final&lt;/span&gt; JwtTokenProvider tokenProvider;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;final&lt;/span&gt; CustomUserDetailsService userDetailsService;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@Override&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;protected&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;void&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;doFilterInternal&lt;/span&gt;(HttpServletRequest request,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; HttpServletResponse response,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; FilterChain filterChain)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;throws&lt;/span&gt; ServletException, IOException {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; String token &lt;span style="color:#f92672"&gt;=&lt;/span&gt; resolveToken(request);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; (StringUtils.&lt;span style="color:#a6e22e"&gt;hasText&lt;/span&gt;(token) &lt;span style="color:#f92672"&gt;&amp;amp;&amp;amp;&lt;/span&gt; tokenProvider.&lt;span style="color:#a6e22e"&gt;validateToken&lt;/span&gt;(token)) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; String username &lt;span style="color:#f92672"&gt;=&lt;/span&gt; tokenProvider.&lt;span style="color:#a6e22e"&gt;getUsernameFromToken&lt;/span&gt;(token);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; UserDetails userDetails &lt;span style="color:#f92672"&gt;=&lt;/span&gt; userDetailsService.&lt;span style="color:#a6e22e"&gt;loadUserByUsername&lt;/span&gt;(username);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; UsernamePasswordAuthenticationToken authentication &lt;span style="color:#f92672"&gt;=&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; UsernamePasswordAuthenticationToken(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; userDetails, &lt;span style="color:#66d9ef"&gt;null&lt;/span&gt;, userDetails.&lt;span style="color:#a6e22e"&gt;getAuthorities&lt;/span&gt;());
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; SecurityContextHolder.&lt;span style="color:#a6e22e"&gt;getContext&lt;/span&gt;().&lt;span style="color:#a6e22e"&gt;setAuthentication&lt;/span&gt;(authentication);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; filterChain.&lt;span style="color:#a6e22e"&gt;doFilter&lt;/span&gt;(request, response);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;private&lt;/span&gt; String &lt;span style="color:#a6e22e"&gt;resolveToken&lt;/span&gt;(HttpServletRequest request) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; String bearerToken &lt;span style="color:#f92672"&gt;=&lt;/span&gt; request.&lt;span style="color:#a6e22e"&gt;getHeader&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;Authorization&amp;#34;&lt;/span&gt;);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; (StringUtils.&lt;span style="color:#a6e22e"&gt;hasText&lt;/span&gt;(bearerToken) &lt;span style="color:#f92672"&gt;&amp;amp;&amp;amp;&lt;/span&gt; bearerToken.&lt;span style="color:#a6e22e"&gt;startsWith&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;Bearer &amp;#34;&lt;/span&gt;)) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; bearerToken.&lt;span style="color:#a6e22e"&gt;substring&lt;/span&gt;(7);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;null&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;code&gt;OncePerRequestFilter&lt;/code&gt;를 상속하면 같은 요청에서 필터가 한 번만 실행됨을 보장한다.&lt;/p&gt;
+&lt;h3 id="로그인-api"&gt;&lt;a href="#%eb%a1%9c%ea%b7%b8%ec%9d%b8-api" class="header-anchor"&gt;&lt;/a&gt;로그인 API
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@RestController&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@RequestMapping&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;/api/auth&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;class&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;AuthController&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;@PostMapping&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;/login&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; ResponseEntity&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;TokenResponse&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;login&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;@RequestBody&lt;/span&gt; LoginRequest request) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; Authentication authentication &lt;span style="color:#f92672"&gt;=&lt;/span&gt; authenticationManager.&lt;span style="color:#a6e22e"&gt;authenticate&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; UsernamePasswordAuthenticationToken(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; request.&lt;span style="color:#a6e22e"&gt;getEmail&lt;/span&gt;(), request.&lt;span style="color:#a6e22e"&gt;getPassword&lt;/span&gt;()));
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; String token &lt;span style="color:#f92672"&gt;=&lt;/span&gt; tokenProvider.&lt;span style="color:#a6e22e"&gt;generateToken&lt;/span&gt;(authentication);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; ResponseEntity.&lt;span style="color:#a6e22e"&gt;ok&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; TokenResponse(token));
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;hr&gt;
+&lt;h2 id="인가--메서드-수준-보안"&gt;&lt;a href="#%ec%9d%b8%ea%b0%80--%eb%a9%94%ec%84%9c%eb%93%9c-%ec%88%98%ec%a4%80-%eb%b3%b4%ec%95%88" class="header-anchor"&gt;&lt;/a&gt;인가 — 메서드 수준 보안
+&lt;/h2&gt;&lt;p&gt;&lt;code&gt;@EnableMethodSecurity&lt;/code&gt;를 활성화하면 메서드에 직접 권한 조건을 선언할 수 있다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@PreAuthorize&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;hasRole(&amp;#39;ADMIN&amp;#39;)&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@GetMapping&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;/api/admin/users&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; List&lt;span style="color:#f92672"&gt;&amp;lt;&lt;/span&gt;UserDto&lt;span style="color:#f92672"&gt;&amp;gt;&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;getAllUsers&lt;/span&gt;() { ... }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// 본인 또는 ADMIN만 접근&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@PreAuthorize&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;hasRole(&amp;#39;ADMIN&amp;#39;) or #userId == authentication.principal.id&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@GetMapping&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;/api/users/{userId}&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; UserDto &lt;span style="color:#a6e22e"&gt;getUser&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;@PathVariable&lt;/span&gt; Long userId) { ... }
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;SpEL(Spring Expression Language)을 지원하므로 &lt;code&gt;@Secured&lt;/code&gt;보다 표현력이 좋다.&lt;/p&gt;
+&lt;p&gt;현재 로그인한 사용자 정보는 &lt;code&gt;@AuthenticationPrincipal&lt;/code&gt;로 바로 받을 수 있다.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@GetMapping&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;/api/me&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; UserDto &lt;span style="color:#a6e22e"&gt;getMyProfile&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;@AuthenticationPrincipal&lt;/span&gt; UserDetails userDetails) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; String username &lt;span style="color:#f92672"&gt;=&lt;/span&gt; userDetails.&lt;span style="color:#a6e22e"&gt;getUsername&lt;/span&gt;();
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ...
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;hr&gt;
+&lt;h2 id="bcrypt--패스워드-암호화"&gt;&lt;a href="#bcrypt--%ed%8c%a8%ec%8a%a4%ec%9b%8c%eb%93%9c-%ec%95%94%ed%98%b8%ed%99%94" class="header-anchor"&gt;&lt;/a&gt;BCrypt — 패스워드 암호화
+&lt;/h2&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-java" data-lang="java"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;@Bean&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;public&lt;/span&gt; PasswordEncoder &lt;span style="color:#a6e22e"&gt;passwordEncoder&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;new&lt;/span&gt; BCryptPasswordEncoder(); &lt;span style="color:#75715e"&gt;// 기본 strength: 10&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// 회원가입 시&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;String encoded &lt;span style="color:#f92672"&gt;=&lt;/span&gt; passwordEncoder.&lt;span style="color:#a6e22e"&gt;encode&lt;/span&gt;(rawPassword);
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// 로그인 시 검증&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;boolean&lt;/span&gt; matches &lt;span style="color:#f92672"&gt;=&lt;/span&gt; passwordEncoder.&lt;span style="color:#a6e22e"&gt;matches&lt;/span&gt;(rawPassword, encodedPassword);
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;BCrypt는 동일한 평문을 암호화해도 매번 다른 해시가 나온다(salt 자동 포함). 역산이 불가능하고, 검증은 반드시 &lt;code&gt;matches()&lt;/code&gt;로 해야 한다. 해시값을 직접 비교하면 항상 false다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="refresh-token-패턴"&gt;&lt;a href="#refresh-token-%ed%8c%a8%ed%84%b4" class="header-anchor"&gt;&lt;/a&gt;Refresh Token 패턴
+&lt;/h2&gt;&lt;p&gt;Access Token만 사용하면 만료 시 재로그인이 필요하다. Refresh Token 패턴으로 해결한다.&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;Access Token : 짧은 만료 (15분~1시간) — 탈취 위험 최소화
+Refresh Token : 긴 만료 (7~30일) — DB/Redis에 저장
+
+[1] 로그인 → Access Token + Refresh Token 발급
+[2] API 요청 → Access Token 헤더에 담아 전송
+[3] Access Token 만료 → Refresh Token으로 재발급 요청
+[4] 서버: DB에서 Refresh Token 검증 → 유효하면 새 Access Token 발급
+[5] 로그아웃 → DB에서 Refresh Token 삭제
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Access Token은 Stateless라 서버에서 강제 무효화가 불가능하다. Refresh Token을 DB에 저장하면 로그아웃과 강제 만료 처리가 가능해진다.&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="마치며"&gt;&lt;a href="#%eb%a7%88%ec%b9%98%eb%a9%b0" class="header-anchor"&gt;&lt;/a&gt;마치며
+&lt;/h2&gt;&lt;p&gt;Spring Security는 Filter 레이어에서 동작한다. Controller에 닿기 전에 인증/인가가 처리되는 구조다. JWT 방식의 핵심은 &lt;code&gt;JwtAuthenticationFilter&lt;/code&gt;가 매 요청마다 토큰을 검증하고 &lt;code&gt;SecurityContextHolder&lt;/code&gt;에 인증 정보를 저장하는 것이다. &lt;code&gt;@PreAuthorize&lt;/code&gt;는 AOP로 메서드 단위 인가를 처리한다.&lt;/p&gt;
+&lt;p&gt;다음 편에서는 Spring 예외 처리 — &lt;code&gt;@ControllerAdvice&lt;/code&gt;와 커스텀 예외 계층 설계를 정리한다.&lt;/p&gt;</description></item></channel></rss>
