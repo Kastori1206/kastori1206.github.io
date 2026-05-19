@@ -5,7 +5,7 @@ theme = "stack"
 paginate = 10
 
 [params]
-    mainSections = ["posts"]
+    mainSections = ["tech", "til", "log"]
     rssFullContent = true
 
     [params.footer]
@@ -65,18 +65,34 @@ paginate = 10
             icon = "home"
 
     [[menu.main]]
-        identifier = "posts"
-        name = "Posts"
-        url = "/posts/"
+        identifier = "tech"
+        name = "Tech"
+        url = "/tech/"
         weight = 20
         [menu.main.params]
             icon = "archives"
 
     [[menu.main]]
+        identifier = "til"
+        name = "TIL"
+        url = "/til/"
+        weight = 30
+        [menu.main.params]
+            icon = "hash"
+
+    [[menu.main]]
+        identifier = "log"
+        name = "Log"
+        url = "/log/"
+        weight = 40
+        [menu.main.params]
+            icon = "infinity"
+
+    [[menu.main]]
         identifier = "tags"
         name = "Tags"
         url = "/tags/"
-        weight = 30
+        weight = 50
         [menu.main.params]
             icon = "tag"
 
@@ -84,7 +100,7 @@ paginate = 10
         identifier = "search"
         name = "Search"
         url = "/search/"
-        weight = 40
+        weight = 60
         [menu.main.params]
             icon = "search"
 
@@ -92,7 +108,7 @@ paginate = 10
         identifier = "github"
         name = "GitHub"
         url = "https://github.com/kastori1206"
-        weight = 50
+        weight = 70
         [menu.main.params]
             icon = "brand-github"
             newTab = true
