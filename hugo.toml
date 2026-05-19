@@ -1,0 +1,46 @@
+baseURL = "https://kastori1206.github.io/"
+locale = "ko-kr"
+title = "kastori"
+theme = "PaperMod"
+paginate = 10
+
+[params]
+  author = "kastori"
+  description = "풀스택 개발자의 기술 블로그"
+  defaultTheme = "auto"
+  ShowReadingTime = true
+  ShowShareButtons = false
+  ShowPostNavLinks = true
+  ShowBreadCrumbs = true
+  ShowCodeCopyButtons = true
+  ShowToc = true
+  TocOpen = false
+  ShowWordCount = false
+
+  [params.homeInfoParams]
+    Title = "안녕하세요, kastori입니다"
+    Content = "풀스택 웹 개발자로서 배운 것들을 기록합니다. Spring, JPA, React, 그리고 그 너머."
+
+  [[params.socialIcons]]
+    name = "github"
+    url = "https://github.com/kastori1206"
+
+[menu]
+  [[menu.main]]
+    identifier = "posts"
+    name = "Posts"
+    url = "/posts/"
+    weight = 10
+  [[menu.main]]
+    identifier = "tags"
+    name = "Tags"
+    url = "/tags/"
+    weight = 20
+  [[menu.main]]
+    identifier = "search"
+    name = "Search"
+    url = "/search/"
+    weight = 30
+
+[outputs]
+  home = ["HTML", "RSS", "JSON"]
