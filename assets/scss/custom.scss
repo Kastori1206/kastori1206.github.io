@@ -1,0 +1,74 @@
+.section-tree--list {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.section-tree--item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.section-tree--parent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--card-text-color-main);
+    text-decoration: none;
+    transition: background 0.2s;
+
+    &:hover {
+        background: var(--card-background);
+        color: var(--accent-color);
+    }
+
+    &.active {
+        color: var(--accent-color);
+    }
+}
+
+.section-tree--children {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin-left: 12px;
+    padding-left: 12px;
+    border-left: 2px solid var(--card-separator-color);
+}
+
+.section-tree--child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 1.3rem;
+    color: var(--card-text-color-secondary);
+    text-decoration: none;
+    transition: background 0.2s;
+
+    &:hover {
+        background: var(--card-background);
+        color: var(--accent-color);
+    }
+
+    &.active {
+        color: var(--accent-color);
+        font-weight: 600;
+    }
+}
+
+.section-tree--count {
+    font-size: 1.2rem;
+    color: var(--card-text-color-tertiary);
+    background: var(--card-background);
+    padding: 1px 7px;
+    border-radius: 20px;
+    font-weight: 400;
+}

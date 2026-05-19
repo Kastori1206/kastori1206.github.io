@@ -1,0 +1,37 @@
+{{- $context := .Context -}}
+{{- $currentPage := $context -}}
+
+<section class="widget section-tree">
+    <div class="widget-icon">
+        {{ partial "helper/icon" "categories" }}
+    </div>
+    <h2 class="widget-title section-title">분류</h2>
+
+    <div class="section-tree--list">
+        {{- range $context.Site.Sections -}}
+            {{- $section := . -}}
+            {{- $postCount := len $section.RegularPagesRecursive -}}
+            <div class="section-tree--item">
+                <a href="{{ $section.RelPermalink }}"
+                   class="section-tree--parent{{ if or ($currentPage.IsDescendant $section) (eq $currentPage.RelPermalink $section.RelPermalink) }} active{{ end }}">
+                    <span class="section-tree--name">{{ $section.Title }}</span>
+                    <span class="section-tree--count">{{ $postCount }}</span>
+                </a>
+
+                {{- if $section.Sections -}}
+                <div class="section-tree--children">
+                    {{- range $section.Sections -}}
+                        {{- $child := . -}}
+                        {{- $childCount := len $child.RegularPagesRecursive -}}
+                        <a href="{{ $child.RelPermalink }}"
+                           class="section-tree--child{{ if or ($currentPage.IsDescendant $child) (eq $currentPage.RelPermalink $child.RelPermalink) }} active{{ end }}">
+                            <span class="section-tree--name">{{ $child.Title }}</span>
+                            <span class="section-tree--count">{{ $childCount }}</span>
+                        </a>
+                    {{- end -}}
+                </div>
+                {{- end -}}
+            </div>
+        {{- end -}}
+    </div>
+</section>
