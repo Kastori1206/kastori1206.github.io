@@ -210,6 +210,28 @@
 }
 
 /* ════════════════════════════════════════
+   섹션 리스트 페이지 헤더 (tech/til/log)
+   ════════════════════════════════════════ */
+.section-list-header {
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--card-separator-color);
+    margin-bottom: 4px;
+
+    .section-list-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: var(--card-text-color-main);
+        margin: 0 0 6px;
+    }
+
+    .section-list-desc {
+        font-size: 1.35rem;
+        color: var(--card-text-color-secondary);
+        margin: 0;
+    }
+}
+
+/* ════════════════════════════════════════
    글 목록 카드 (일반)
    ════════════════════════════════════════ */
 .article-list {
