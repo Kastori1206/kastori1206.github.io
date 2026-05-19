@@ -76,15 +76,6 @@ paginate = 10
             icon = "archives"
 
     [[menu.main]]
-        parent = "tech"
-        identifier = "spring"
-        name = "Spring"
-        url = "/tech/spring/"
-        weight = 21
-        [menu.main.params]
-            icon = ""
-
-    [[menu.main]]
         identifier = "til"
         name = "TIL"
         url = "/til/"

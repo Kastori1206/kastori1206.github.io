@@ -1,36 +1,3 @@
-/* 왼쪽 사이드바 서브메뉴 */
-.sub-menu {
-    list-style: none;
-    padding: 0;
-    margin: 4px 0 4px 16px;
-    border-left: 2px solid var(--card-separator-color);
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-
-    li a {
-        display: block;
-        padding: 4px 12px;
-        font-size: 1.3rem;
-        color: var(--body-text-color);
-        text-decoration: none;
-        border-radius: 6px;
-        opacity: 0.8;
-        transition: opacity 0.2s, background 0.2s;
-
-        &:hover {
-            opacity: 1;
-            background: var(--card-background);
-        }
-    }
-
-    li.current a {
-        opacity: 1;
-        color: var(--accent-color);
-        font-weight: 600;
-    }
-}
-
 .section-tree--list {
     margin-top: 8px;
     display: flex;
