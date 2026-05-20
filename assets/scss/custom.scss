@@ -480,15 +480,14 @@
     }
 }
 
-/* 아티클 페이지 조회수 */
-.article-pageview {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 1.4rem;
-    color: var(--card-text-color-secondary);
+/* 카드 조회수 (inline-meta 내부 인라인 요소) */
+.pageview-icon {
+    opacity: 0.7;
+    flex-shrink: 0;
+}
 
-    svg { opacity: 0.7; }
+.pageview-count {
+    font-variant-numeric: tabular-nums;
 }
 
 /* ════════════════════════════════════════
