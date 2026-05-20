@@ -1,8 +1,48 @@
-<!-- Busuanzi 방문자 카운터 -->
+<!-- Busuanzi 사이트 방문자 카운터 -->
 <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
 
-<!-- Cloudflare Web Analytics -->
-<!-- 아래 token을 Cloudflare 대시보드 > Analytics > Web Analytics 에서 발급받아 교체하세요 -->
+<!-- Cloudflare Web Analytics (프로덕션 빌드에서만 로드) -->
+{{- if not hugo.IsServer -}}
 {{- with .Site.Params.cloudflareAnalyticsToken -}}
 <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "{{ . }}"}'></script>
+{{- end -}}
+{{- end -}}
+
+<!-- 글별 조회수 (Cloudflare Workers) -->
+{{- with .Site.Params.pageviewWorkerUrl -}}
+<meta name="pageview-worker-url" content="{{ . }}">
+<script>
+(function () {
+  const WORKER = document.querySelector('meta[name="pageview-worker-url"]')?.content;
+  if (!WORKER) return;
+
+  async function getCount(url) {
+    const r = await fetch(`${WORKER}/api/pageviews?url=${encodeURIComponent(url)}`);
+    return (await r.json()).count ?? 0;
+  }
+  async function increment(url) {
+    const r = await fetch(`${WORKER}/api/pageviews?url=${encodeURIComponent(url)}`, { method: 'POST' });
+    return (await r.json()).count ?? 0;
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const els = document.querySelectorAll('[data-pageview-url]');
+    if (!els.length) return;
+
+    const isArticle = document.body.classList.contains('article-page');
+
+    for (const el of els) {
+      const url = el.dataset.pageviewUrl;
+      const countEl = el.querySelector('.pageview-count');
+      if (!countEl) continue;
+      try {
+        const count = (isArticle && url === location.pathname)
+          ? await increment(url)
+          : await getCount(url);
+        countEl.textContent = count.toLocaleString();
+      } catch { countEl.textContent = '-'; }
+    }
+  });
+})();
+</script>
 {{- end -}}

@@ -100,18 +100,13 @@
                     </li>
                 {{ end }}
 
-                {{/* 방문자 통계 — 다크모드 바로 위 */}}
-                <li class="visitor-stats">
-                    <span class="visitor-stats-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                        <span class="visitor-stats-label">방문자</span>
-                        <span id="busuanzi_value_site_uv" class="visitor-stats-value">-</span>
-                    </span>
-                    <span class="visitor-stats-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                        <span class="visitor-stats-label">조회수</span>
-                        <span id="busuanzi_value_site_pv" class="visitor-stats-value">-</span>
-                    </span>
+                {{/* 총방문자 수 */}}
+                <li id="visitor-count">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <span id="busuanzi_value_site_uv">-</span>
                 </li>
 
                 {{ if .Site.Params.colorScheme.toggle }}

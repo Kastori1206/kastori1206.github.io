@@ -1,95 +1,734 @@
-<!doctype html><html lang=ko-kr dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="@Cacheable/@CacheEvict/@CachePut 동작 원리, 로컬 캐시에서 Redis로 전환하는 방법, Cache-Aside/Write-Through 전략, 캐시 스탬피드와 자기 호출 함정까지 정리한다."><title>[Spring 완전 정복 #13] Spring Cache — @Cacheable로 DB 부하 줄이기, Redis 캐시 전략</title><link rel=canonical href=https://blog.kastori.dev/tech/2026-05-19-spring-13-cache/><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href=/scss/style.min.c990da72d979f2c9af89fd014cb4e89705bd3c5ec43136cfaf09baa5323c398a.css><meta property='og:title' content="[Spring 완전 정복 #13] Spring Cache — @Cacheable로 DB 부하 줄이기, Redis 캐시 전략"><meta property='og:description' content="@Cacheable/@CacheEvict/@CachePut 동작 원리, 로컬 캐시에서 Redis로 전환하는 방법, Cache-Aside/Write-Through 전략, 캐시 스탬피드와 자기 호출 함정까지 정리한다."><meta property='og:url' content='https://blog.kastori.dev/tech/2026-05-19-spring-13-cache/'><meta property='og:site_name' content='kastori'><meta property='og:type' content='article'><meta property='article:section' content='Tech'><meta property='article:tag' content='spring'><meta property='article:tag' content='cache'><meta property='article:tag' content='cacheable'><meta property='article:tag' content='redis'><meta property='article:tag' content='cacheevict'><meta property='article:tag' content='performance'><meta property='article:tag' content='backend'><meta property='article:published_time' content='2026-05-19T00:00:00+00:00'><meta property='article:modified_time' content='2026-05-19T00:00:00+00:00'><meta name=twitter:title content="[Spring 완전 정복 #13] Spring Cache — @Cacheable로 DB 부하 줄이기, Redis 캐시 전략"><meta name=twitter:description content="@Cacheable/@CacheEvict/@CachePut 동작 원리, 로컬 캐시에서 Redis로 전환하는 방법, Cache-Aside/Write-Through 전략, 캐시 스탬피드와 자기 호출 함정까지 정리한다."></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label="Toggle Menu">
-<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=https://github.com/kastori1206.png width=460 height=460 class=site-logo loading=lazy alt=Avatar></a></figure><div class=site-meta><h1 class=site-name><a href=/>kastori</a></h1><h2 class=site-description>풀스택 개발자의 기술 블로그</h2></div></header><ol class=menu-social><li><a href=https://github.com/kastori1206 title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg>
-<span>Home</span></a></li><li><a href=/tech/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-<span>Tech</span></a></li><li><a href=/til/><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg>
-<span>TIL</span></a></li><li><a href=/log/><svg class="icon icon-tabler icon-tabler-infinity" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M9.828 9.172a4 4 0 100 5.656A10 10 0 0012 12a10 10 0 012.172-2.828 4 4 0 110 5.656A10 10 0 0112 12 10 10 0 009.828 9.172"/></svg>
-<span>Log</span></a></li><li><a href=/tags/><svg class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11 3l9 9a1.5 1.5.0 010 2l-6 6a1.5 1.5.0 01-2 0L3 11V7a4 4 0 014-4h4"/><circle cx="9" cy="9" r="2"/></svg>
-<span>Tags</span></a></li><li><a href=/search/><svg class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg>
-<span>Search</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<span>Dark Mode</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">Table of contents</h2><div class=widget--toc><nav class=toc-nav id=TableOfContents><ul><li><a href=#같은-데이터를-매번-db에서-가져와야-할까>같은 데이터를 매번 DB에서 가져와야 할까?</a></li><li><a href=#cacheable--캐시-조회--없으면-실행--저장>@Cacheable — 캐시 조회 → 없으면 실행 → 저장</a></li><li><a href=#cacheevict--데이터-수정-시-캐시-삭제>@CacheEvict — 데이터 수정 시 캐시 삭제</a></li><li><a href=#cacheput--항상-실행--캐시-갱신>@CachePut — 항상 실행 + 캐시 갱신</a></li><li><a href=#로컬-캐시에서-redis로-교체>로컬 캐시에서 Redis로 교체</a><ul><li><a href=#로컬-캐시-기본>로컬 캐시 (기본)</a></li><li><a href=#redis-캐시-다중-서버-환경>Redis 캐시 (다중 서버 환경)</a></li></ul></li><li><a href=#캐시-전략>캐시 전략</a><ul><li><a href=#cache-aside-lazy-loading--가장-일반적>Cache-Aside (Lazy Loading) — 가장 일반적</a></li><li><a href=#write-through>Write-Through</a></li></ul></li><li><a href=#주의사항-3가지>주의사항 3가지</a><ul><li><a href=#1-캐시-스탬피드>1. 캐시 스탬피드</a></li><li><a href=#2-캐시-무효화-누락>2. 캐시 무효화 누락</a></li><li><a href=#3-자기-호출>3. 자기 호출</a></li></ul></li><li><a href=#마치며>마치며</a></li></ul></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/spring/ style=background-color:#c1efbe;color:#123d0f>Spring</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/tech/2026-05-19-spring-13-cache/>[Spring 완전 정복 #13] Spring Cache — @Cacheable로 DB 부하 줄이기, Redis 캐시 전략</a></h2><h3 class=article-subtitle>@Cacheable/@CacheEvict/@CachePut 동작 원리, 로컬 캐시에서 Redis로 전환하는 방법, Cache-Aside/Write-Through 전략, 캐시 스탬피드와 자기 호출 함정까지 정리한다.</h3></div><footer class=article-meta><div class=inline-meta><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
-<time class=article-time--published datetime=2026-05-19T00:00:00Z>2026-05-19</time>
-<svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-<time class=article-time--reading>3 minutes read</time></div></footer></div></header><aside class=article-toc><details><summary><div class=article-toc-title><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6-6 6"/></svg>
-<span>Table of contents</span></div></summary><nav class=toc-nav><ul><li><a href=#같은-데이터를-매번-db에서-가져와야-할까>같은 데이터를 매번 DB에서 가져와야 할까?</a></li><li><a href=#cacheable--캐시-조회--없으면-실행--저장>@Cacheable — 캐시 조회 → 없으면 실행 → 저장</a></li><li><a href=#cacheevict--데이터-수정-시-캐시-삭제>@CacheEvict — 데이터 수정 시 캐시 삭제</a></li><li><a href=#cacheput--항상-실행--캐시-갱신>@CachePut — 항상 실행 + 캐시 갱신</a></li><li><a href=#로컬-캐시에서-redis로-교체>로컬 캐시에서 Redis로 교체</a><ul><li><a href=#로컬-캐시-기본>로컬 캐시 (기본)</a></li><li><a href=#redis-캐시-다중-서버-환경>Redis 캐시 (다중 서버 환경)</a></li></ul></li><li><a href=#캐시-전략>캐시 전략</a><ul><li><a href=#cache-aside-lazy-loading--가장-일반적>Cache-Aside (Lazy Loading) — 가장 일반적</a></li><li><a href=#write-through>Write-Through</a></li></ul></li><li><a href=#주의사항-3가지>주의사항 3가지</a><ul><li><a href=#1-캐시-스탬피드>1. 캐시 스탬피드</a></li><li><a href=#2-캐시-무효화-누락>2. 캐시 무효화 누락</a></li><li><a href=#3-자기-호출>3. 자기 호출</a></li></ul></li><li><a href=#마치며>마치며</a></li></ul></nav></details></aside><section class=article-content><h2 id=같은-데이터를-매번-db에서-가져와야-할까><a href=#%ea%b0%99%ec%9d%80-%eb%8d%b0%ec%9d%b4%ed%84%b0%eb%a5%bc-%eb%a7%a4%eb%b2%88-db%ec%97%90%ec%84%9c-%ea%b0%80%ec%a0%b8%ec%99%80%ec%95%bc-%ed%95%a0%ea%b9%8c class=header-anchor></a>같은 데이터를 매번 DB에서 가져와야 할까?</h2><p>자주 조회되지만 잘 바뀌지 않는 데이터가 있다. 상품 카탈로그, 카테고리 목록, 설정값 같은 것들이다. 이런 데이터를 요청마다 DB에서 가져오는 것은 비효율적이다.</p><p><strong>캐시</strong>는 이 데이터를 메모리에 저장해두고, 다음 요청부터는 DB를 거치지 않고 메모리에서 반환한다. Spring Cache 추상화는 <code>@Cacheable</code> 어노테이션 하나로 이 동작을 구현한다.</p><hr><h2 id=cacheable--캐시-조회--없으면-실행--저장><a href=#cacheable--%ec%ba%90%ec%8b%9c-%ec%a1%b0%ed%9a%8c--%ec%97%86%ec%9c%bc%eb%a9%b4-%ec%8b%a4%ed%96%89--%ec%a0%80%ec%9e%a5 class=header-anchor></a>@Cacheable — 캐시 조회 → 없으면 실행 → 저장</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#a6e22e>@Service</span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>public</span> <span style=color:#66d9ef>class</span> <span style=color:#a6e22e>ProductService</span> {
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>@Cacheable</span>(value <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;products&#34;</span>, key <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;#productId&#34;</span>)
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>public</span> ProductDto <span style=color:#a6e22e>getProduct</span>(Long productId) {
-</span></span><span style=display:flex><span>        <span style=color:#75715e>// 캐시에 없을 때만 실행 (Cache Miss)</span>
-</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> productRepository.<span style=color:#a6e22e>findById</span>(productId)
-</span></span><span style=display:flex><span>            .<span style=color:#a6e22e>map</span>(ProductDto::from)
-</span></span><span style=display:flex><span>            .<span style=color:#a6e22e>orElseThrow</span>(() <span style=color:#f92672>-&gt;</span> <span style=color:#66d9ef>new</span> ProductNotFoundException(productId));
-</span></span><span style=display:flex><span>    }
-</span></span><span style=display:flex><span>}
-</span></span></code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#a6e22e>@Configuration</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>@EnableCaching</span>  <span style=color:#75715e>// 캐시 활성화</span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>public</span> <span style=color:#66d9ef>class</span> <span style=color:#a6e22e>CacheConfig</span> { }
-</span></span></code></pre></div><p>동작 흐름:</p><pre tabindex=0><code>[첫 번째 호출]
-→ 캐시 조회 → Miss → 메서드 실행 → 결과를 캐시에 저장 → 반환
+<!DOCTYPE html>
+<html lang="ko-kr" dir="ltr">
+    <head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="@Cacheable/@CacheEvict/@CachePut 동작 원리, 로컬 캐시에서 Redis로 전환하는 방법, Cache-Aside/Write-Through 전략, 캐시 스탬피드와 자기 호출 함정까지 정리한다.">
+<title>[Spring 완전 정복 #13] Spring Cache — @Cacheable로 DB 부하 줄이기, Redis 캐시 전략</title>
 
-[두 번째 이후]
-→ 캐시 조회 → Hit → 메서드 실행 없이 캐시 반환
-</code></pre><p>키를 복합적으로 구성할 수 있다.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#a6e22e>@Cacheable</span>(value <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;products&#34;</span>, key <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;#category + &#39;:&#39; + #page&#34;</span>)
-</span></span><span style=display:flex><span><span style=color:#66d9ef>public</span> List<span style=color:#f92672>&lt;</span>ProductDto<span style=color:#f92672>&gt;</span> <span style=color:#a6e22e>getProductsByCategory</span>(String category, <span style=color:#66d9ef>int</span> page) { ... }
-</span></span></code></pre></div><hr><h2 id=cacheevict--데이터-수정-시-캐시-삭제><a href=#cacheevict--%eb%8d%b0%ec%9d%b4%ed%84%b0-%ec%88%98%ec%a0%95-%ec%8b%9c-%ec%ba%90%ec%8b%9c-%ec%82%ad%ec%a0%9c class=header-anchor></a>@CacheEvict — 데이터 수정 시 캐시 삭제</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#a6e22e>@CacheEvict</span>(value <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;products&#34;</span>, key <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;#productId&#34;</span>)
-</span></span><span style=display:flex><span><span style=color:#66d9ef>public</span> <span style=color:#66d9ef>void</span> <span style=color:#a6e22e>updateProduct</span>(Long productId, ProductUpdateRequest request) {
-</span></span><span style=display:flex><span>    <span style=color:#75715e>// 메서드 실행 후 캐시 삭제 (기본값)</span>
-</span></span><span style=display:flex><span>    <span style=color:#75715e>// 다음 조회 시 DB에서 새 데이터를 가져와 캐시에 저장</span>
-</span></span><span style=display:flex><span>}
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#75715e>// 전체 삭제</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>@CacheEvict</span>(value <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;products&#34;</span>, allEntries <span style=color:#f92672>=</span> <span style=color:#66d9ef>true</span>)
-</span></span><span style=display:flex><span><span style=color:#66d9ef>public</span> <span style=color:#66d9ef>void</span> <span style=color:#a6e22e>clearAllCache</span>() { }
-</span></span></code></pre></div><hr><h2 id=cacheput--항상-실행--캐시-갱신><a href=#cacheput--%ed%95%ad%ec%83%81-%ec%8b%a4%ed%96%89--%ec%ba%90%ec%8b%9c-%ea%b0%b1%ec%8b%a0 class=header-anchor></a>@CachePut — 항상 실행 + 캐시 갱신</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#a6e22e>@CachePut</span>(value <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;products&#34;</span>, key <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;#result.id&#34;</span>)
-</span></span><span style=display:flex><span><span style=color:#66d9ef>public</span> ProductDto <span style=color:#a6e22e>createProduct</span>(ProductCreateRequest request) {
-</span></span><span style=display:flex><span>    Product saved <span style=color:#f92672>=</span> productRepository.<span style=color:#a6e22e>save</span>(<span style=color:#66d9ef>new</span> Product(request));
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> ProductDto.<span style=color:#a6e22e>from</span>(saved); <span style=color:#75715e>// 반환값이 캐시에 저장됨</span>
-</span></span><span style=display:flex><span>}
-</span></span></code></pre></div><p><code>@Cacheable</code>은 캐시에 있으면 실행을 건너뛰지만, <code>@CachePut</code>은 항상 실행하고 결과로 캐시를 갱신한다.</p><hr><h2 id=로컬-캐시에서-redis로-교체><a href=#%eb%a1%9c%ec%bb%ac-%ec%ba%90%ec%8b%9c%ec%97%90%ec%84%9c-redis%eb%a1%9c-%ea%b5%90%ec%b2%b4 class=header-anchor></a>로컬 캐시에서 Redis로 교체</h2><p>Spring Cache는 추상화 레이어라 구현체를 쉽게 교체할 수 있다. 코드 변경 없이 <code>CacheManager</code>만 바꾸면 된다.</p><h3 id=로컬-캐시-기본><a href=#%eb%a1%9c%ec%bb%ac-%ec%ba%90%ec%8b%9c-%ea%b8%b0%eb%b3%b8 class=header-anchor></a>로컬 캐시 (기본)</h3><p>기본값은 <code>ConcurrentMapCacheManager</code>다. 별도 설정 없이 동작하지만 서버가 여러 대면 서버마다 다른 캐시를 갖게 되어 데이터 불일치가 생긴다.</p><h3 id=redis-캐시-다중-서버-환경><a href=#redis-%ec%ba%90%ec%8b%9c-%eb%8b%a4%ec%a4%91-%ec%84%9c%eb%b2%84-%ed%99%98%ea%b2%bd class=header-anchor></a>Redis 캐시 (다중 서버 환경)</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-xml data-lang=xml><span style=display:flex><span><span style=color:#f92672>&lt;dependency&gt;</span>
-</span></span><span style=display:flex><span>    <span style=color:#f92672>&lt;groupId&gt;</span>org.springframework.boot<span style=color:#f92672>&lt;/groupId&gt;</span>
-</span></span><span style=display:flex><span>    <span style=color:#f92672>&lt;artifactId&gt;</span>spring-boot-starter-data-redis<span style=color:#f92672>&lt;/artifactId&gt;</span>
-</span></span><span style=display:flex><span><span style=color:#f92672>&lt;/dependency&gt;</span>
-</span></span></code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-yaml data-lang=yaml><span style=display:flex><span><span style=color:#f92672>spring</span>:
-</span></span><span style=display:flex><span>  <span style=color:#f92672>cache</span>:
-</span></span><span style=display:flex><span>    <span style=color:#f92672>type</span>: <span style=color:#ae81ff>redis</span>
-</span></span><span style=display:flex><span>    <span style=color:#f92672>redis</span>:
-</span></span><span style=display:flex><span>      <span style=color:#f92672>time-to-live: 3600000  # 기본 TTL</span>: <span style=color:#ae81ff>1시간</span>
-</span></span></code></pre></div><p>캐시별로 TTL을 다르게 설정하려면:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#a6e22e>@Bean</span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>public</span> RedisCacheManager <span style=color:#a6e22e>cacheManager</span>(RedisConnectionFactory factory) {
-</span></span><span style=display:flex><span>    Map<span style=color:#f92672>&lt;</span>String, RedisCacheConfiguration<span style=color:#f92672>&gt;</span> configs <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> HashMap<span style=color:#f92672>&lt;&gt;</span>();
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    configs.<span style=color:#a6e22e>put</span>(<span style=color:#e6db74>&#34;products&#34;</span>,
-</span></span><span style=display:flex><span>        RedisCacheConfiguration.<span style=color:#a6e22e>defaultCacheConfig</span>()
-</span></span><span style=display:flex><span>            .<span style=color:#a6e22e>entryTtl</span>(Duration.<span style=color:#a6e22e>ofMinutes</span>(30))
-</span></span><span style=display:flex><span>            .<span style=color:#a6e22e>serializeValuesWith</span>(
-</span></span><span style=display:flex><span>                RedisSerializationContext.<span style=color:#a6e22e>SerializationPair</span>
-</span></span><span style=display:flex><span>                    .<span style=color:#a6e22e>fromSerializer</span>(<span style=color:#66d9ef>new</span> GenericJackson2JsonRedisSerializer())));
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    configs.<span style=color:#a6e22e>put</span>(<span style=color:#e6db74>&#34;users&#34;</span>,
-</span></span><span style=display:flex><span>        RedisCacheConfiguration.<span style=color:#a6e22e>defaultCacheConfig</span>()
-</span></span><span style=display:flex><span>            .<span style=color:#a6e22e>entryTtl</span>(Duration.<span style=color:#a6e22e>ofHours</span>(1)));
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> RedisCacheManager.<span style=color:#a6e22e>builder</span>(factory)
-</span></span><span style=display:flex><span>        .<span style=color:#a6e22e>withInitialCacheConfigurations</span>(configs)
-</span></span><span style=display:flex><span>        .<span style=color:#a6e22e>build</span>();
-</span></span><span style=display:flex><span>}
-</span></span></code></pre></div><hr><h2 id=캐시-전략><a href=#%ec%ba%90%ec%8b%9c-%ec%a0%84%eb%9e%b5 class=header-anchor></a>캐시 전략</h2><h3 id=cache-aside-lazy-loading--가장-일반적><a href=#cache-aside-lazy-loading--%ea%b0%80%ec%9e%a5-%ec%9d%bc%eb%b0%98%ec%a0%81 class=header-anchor></a>Cache-Aside (Lazy Loading) — 가장 일반적</h3><pre tabindex=0><code>읽기: 캐시 → Miss면 DB 조회 → 캐시 저장 → 반환
-쓰기: DB 업데이트 → 캐시 삭제 (다음 읽기 때 재적재)
-</code></pre><p>Spring의 <code>@Cacheable</code> + <code>@CacheEvict</code> 패턴이 이것이다.</p><h3 id=write-through><a href=#write-through class=header-anchor></a>Write-Through</h3><pre tabindex=0><code>쓰기: DB 업데이트 + 캐시 동시 업데이트
-</code></pre><p><code>@CachePut</code> 패턴이다. 읽기가 항상 캐시에서 이루어져 빠르지만, 잘 쓰지 않는 데이터도 캐시에 올라가 공간을 낭비할 수 있다.</p><hr><h2 id=주의사항-3가지><a href=#%ec%a3%bc%ec%9d%98%ec%82%ac%ed%95%ad-3%ea%b0%80%ec%a7%80 class=header-anchor></a>주의사항 3가지</h2><h3 id=1-캐시-스탬피드><a href=#1-%ec%ba%90%ec%8b%9c-%ec%8a%a4%ed%83%ac%ed%94%bc%eb%93%9c class=header-anchor></a>1. 캐시 스탬피드</h3><p>캐시가 만료되는 순간 대량의 요청이 동시에 DB로 몰리는 현상이다. TTL에 랜덤 jitter를 추가하거나 분산 락으로 하나의 요청만 DB를 조회하도록 처리한다.</p><h3 id=2-캐시-무효화-누락><a href=#2-%ec%ba%90%ec%8b%9c-%eb%ac%b4%ed%9a%a8%ed%99%94-%eb%88%84%eb%9d%bd class=header-anchor></a>2. 캐시 무효화 누락</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#a6e22e>@Transactional</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>@CacheEvict</span>(value <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;products&#34;</span>, key <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;#id&#34;</span>)  <span style=color:#75715e>// 잊으면 안 됨</span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>public</span> <span style=color:#66d9ef>void</span> <span style=color:#a6e22e>updateProduct</span>(Long id, ProductUpdateRequest request) {
-</span></span><span style=display:flex><span>    productRepository.<span style=color:#a6e22e>save</span>(product.<span style=color:#a6e22e>update</span>(request));
-</span></span><span style=display:flex><span>}
-</span></span></code></pre></div><p>데이터 수정 후 <code>@CacheEvict</code>를 빠트리면 수정 전 데이터가 캐시에 남아 서비스한다.</p><h3 id=3-자기-호출><a href=#3-%ec%9e%90%ea%b8%b0-%ed%98%b8%ec%b6%9c class=header-anchor></a>3. 자기 호출</h3><p><code>@Cacheable</code>도 AOP 프록시로 동작한다. <code>@Transactional</code>, <code>@Async</code>와 동일하게 같은 클래스 내부에서 직접 호출하면 캐시가 적용되지 않는다.</p><p>Redis에 저장하는 DTO는 직렬화 가능해야 한다. Jackson JSON 직렬화 시 기본 생성자가 필요하다.</p><hr><h2 id=마치며><a href=#%eb%a7%88%ec%b9%98%eb%a9%b0 class=header-anchor></a>마치며</h2><p>Spring Cache의 핵심은 <strong>구현체 독립성</strong>이다. 로컬 캐시에서 Redis로 교체할 때 <code>@Cacheable</code> 코드는 전혀 바꾸지 않아도 된다. <code>@Cacheable</code>(조회 캐시), <code>@CacheEvict</code>(삭제), <code>@CachePut</code>(갱신) 세 가지 어노테이션을 목적에 맞게 조합하고, 다중 서버 환경에서는 반드시 Redis 같은 분산 캐시를 사용해야 한다.</p><p>다음 편에서는 Spring Scheduling — <code>@Scheduled</code>와 다중 서버 환경에서의 중복 실행 방지를 정리한다.</p></section><footer class="article-meta article-footer"><section class=article-tags><a href=/tags/spring/>Spring</a>
-<a href=/tags/cache/>Cache</a>
-<a href=/tags/cacheable/>Cacheable</a>
-<a href=/tags/redis/>Redis</a>
-<a href=/tags/cacheevict/>Cacheevict</a>
-<a href=/tags/performance/>Performance</a>
-<a href=/tags/backend/>Backend</a></section></footer></article><aside><h2 class=section-title>Related content</h2><div class=subsection-list><div class=article-list--tile><article><a href=/tech/2026-05-19-spring-10-exception-handling/><div class=article-details><h2 class=article-title>[Spring 완전 정복 #10] Spring 예외 처리 — @ControllerAdvice와 Custom Exception 설계</h2></div></a></article><article><a href=/tech/2026-05-19-spring-11-testing/><div class=article-details><h2 class=article-title>[Spring 완전 정복 #11] Spring 테스트 전략 — 단위·슬라이스·통합 테스트를 언제 어떻게 쓸까</h2></div></a></article><article><a href=/tech/2026-05-19-spring-12-async/><div class=article-details><h2 class=article-title>[Spring 완전 정복 #12] Spring @Async — 비동기 처리와 CompletableFuture 병렬 실행</h2></div></a></article><article><a href=/tech/2026-05-19-spring-14-scheduling/><div class=article-details><h2 class=article-title>[Spring 완전 정복 #14] Spring @Scheduled — cron 표현식과 다중 서버 중복 실행 방지</h2></div></a></article><article><a href=/tech/2026-05-19-spring-01-servlet-fundamentals/><div class=article-details><h2 class=article-title>[Spring 완전 정복 #1] Spring을 제대로 이해하려면 Servlet부터 — HTTP 요청이 Controller에 닿기까지</h2></div></a></article></div></div></aside><script src=https://giscus.app/client.js data-repo=kastori1206/kastori1206.github.io data-repo-id=R_kgDOG0eEcg data-category=Announcements data-category-id=DIC_kwDOG0eEcs4C9Zgp data-mapping=title data-strict=0 data-reactions-enabled=1 data-emit-metadata=0 data-input-position=top data-theme=light data-lang=ko data-loading=lazy crossorigin=anonymous async></script><script>function setGiscusTheme(e){let t=document.querySelector("iframe.giscus-frame");t&&t.contentWindow.postMessage({giscus:{setConfig:{theme:e}}},"https://giscus.app")}(function(){addEventListener("message",t=>{if(event.origin!=="https://giscus.app")return;e()}),window.addEventListener("onColorSchemeChange",e);function e(){setGiscusTheme(document.documentElement.dataset.scheme==="light"?"light":"dark_dimmed")}})()</script><footer class=site-footer><section class=copyright>&copy;
-2026 kastori</section><section class=powerby>Built with <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a><br>Theme <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=4.0.2>Stack</a></b> designed by <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a></section></footer><script type=module>
+
+<link rel="canonical" href="http://localhost:1313/tech/2026-05-19-spring-13-cache/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.54008e745c83f930d7fe833b96adaf68321fbaab41704e548755bd0ce68e2f24.css"><meta property='og:title' content="[Spring 완전 정복 #13] Spring Cache — @Cacheable로 DB 부하 줄이기, Redis 캐시 전략">
+<meta property='og:description' content="@Cacheable/@CacheEvict/@CachePut 동작 원리, 로컬 캐시에서 Redis로 전환하는 방법, Cache-Aside/Write-Through 전략, 캐시 스탬피드와 자기 호출 함정까지 정리한다.">
+<meta property='og:url' content='http://localhost:1313/tech/2026-05-19-spring-13-cache/'>
+<meta property='og:site_name' content='kastori'>
+<meta property='og:type' content='article'><meta property='article:section' content='Tech' /><meta property='article:tag' content='spring' /><meta property='article:tag' content='cache' /><meta property='article:tag' content='cacheable' /><meta property='article:tag' content='redis' /><meta property='article:tag' content='cacheevict' /><meta property='article:tag' content='performance' /><meta property='article:tag' content='backend' /><meta property='article:published_time' content='2026-05-19T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-05-19T00:00:00&#43;00:00'/>
+<meta name="twitter:title" content="[Spring 완전 정복 #13] Spring Cache — @Cacheable로 DB 부하 줄이기, Redis 캐시 전략">
+<meta name="twitter:description" content="@Cacheable/@CacheEvict/@CachePut 동작 원리, 로컬 캐시에서 Redis로 전환하는 방법, Cache-Aside/Write-Through 전략, 캐시 스탬피드와 자기 호출 함정까지 정리한다.">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="https://github.com/kastori1206.png"
+                        width="460"
+                        height="460"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+            </figure>
+        
+
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">kastori</a></h1>
+            <h2 class="site-description">풀스택 개발자의 기술 블로그</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a
+                        href='https://github.com/kastori1206'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><form action="/search/" class="sidebar-search-form" data-json="/search/index.json">
+            <input
+                type="search"
+                name="keyword"
+                placeholder="검색..."
+                autocomplete="off"
+            />
+            <button type="submit" aria-label="검색">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+            </button>
+        </form><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tech/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>Tech</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/til/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>TIL</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/log/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-infinity" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M9.828 9.172a4 4 0 1 0 0 5.656 a10 10 0 0 0 2.172 -2.828a10 10 0 0 1 2.172 -2.828 a4 4 0 1 1 0 5.656a10 10 0 0 1 -2.172 -2.828a10 10 0 0 0 -2.172 -2.828" />
+</svg>
+
+
+
+                
+                <span>Log</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>Tags</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>Search</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                <li id="visitor-count">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <span id="busuanzi_value_site_uv">-</span>
+                </li>
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>Dark Mode</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">Table of contents</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#같은-데이터를-매번-db에서-가져와야-할까">같은 데이터를 매번 DB에서 가져와야 할까?</a></li>
+    <li><a href="#cacheable--캐시-조회--없으면-실행--저장">@Cacheable — 캐시 조회 → 없으면 실행 → 저장</a></li>
+    <li><a href="#cacheevict--데이터-수정-시-캐시-삭제">@CacheEvict — 데이터 수정 시 캐시 삭제</a></li>
+    <li><a href="#cacheput--항상-실행--캐시-갱신">@CachePut — 항상 실행 + 캐시 갱신</a></li>
+    <li><a href="#로컬-캐시에서-redis로-교체">로컬 캐시에서 Redis로 교체</a>
+      <ul>
+        <li><a href="#로컬-캐시-기본">로컬 캐시 (기본)</a></li>
+        <li><a href="#redis-캐시-다중-서버-환경">Redis 캐시 (다중 서버 환경)</a></li>
+      </ul>
+    </li>
+    <li><a href="#캐시-전략">캐시 전략</a>
+      <ul>
+        <li><a href="#cache-aside-lazy-loading--가장-일반적">Cache-Aside (Lazy Loading) — 가장 일반적</a></li>
+        <li><a href="#write-through">Write-Through</a></li>
+      </ul>
+    </li>
+    <li><a href="#주의사항-3가지">주의사항 3가지</a>
+      <ul>
+        <li><a href="#1-캐시-스탬피드">1. 캐시 스탬피드</a></li>
+        <li><a href="#2-캐시-무효화-누락">2. 캐시 무효화 누락</a></li>
+        <li><a href="#3-자기-호출">3. 자기 호출</a></li>
+      </ul>
+    </li>
+    <li><a href="#마치며">마치며</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/spring/" style="background-color: hsl(116, 60%, 84%); color: hsl(116, 60%, 15%);">
+                Spring
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/tech/2026-05-19-spring-13-cache/">[Spring 완전 정복 #13] Spring Cache — @Cacheable로 DB 부하 줄이기, Redis 캐시 전략</a>
+        </h2>
+
+        
+        <h3 class="article-subtitle">
+            @Cacheable/@CacheEvict/@CachePut 동작 원리, 로컬 캐시에서 Redis로 전환하는 방법, Cache-Aside/Write-Through 전략, 캐시 스탬피드와 자기 호출 함정까지 정리한다.
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-05-19T00:00:00Z'>2026-05-19</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        3 minutes read
+                    </time>
+                
+
+                
+                
+                <span class="article-pageview" data-pageview-url="/tech/2026-05-19-spring-13-cache/">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span class="pageview-count">-</span>
+                </span>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>Table of contents</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#같은-데이터를-매번-db에서-가져와야-할까">같은 데이터를 매번 DB에서 가져와야 할까?</a></li>
+    <li><a href="#cacheable--캐시-조회--없으면-실행--저장">@Cacheable — 캐시 조회 → 없으면 실행 → 저장</a></li>
+    <li><a href="#cacheevict--데이터-수정-시-캐시-삭제">@CacheEvict — 데이터 수정 시 캐시 삭제</a></li>
+    <li><a href="#cacheput--항상-실행--캐시-갱신">@CachePut — 항상 실행 + 캐시 갱신</a></li>
+    <li><a href="#로컬-캐시에서-redis로-교체">로컬 캐시에서 Redis로 교체</a>
+      <ul>
+        <li><a href="#로컬-캐시-기본">로컬 캐시 (기본)</a></li>
+        <li><a href="#redis-캐시-다중-서버-환경">Redis 캐시 (다중 서버 환경)</a></li>
+      </ul>
+    </li>
+    <li><a href="#캐시-전략">캐시 전략</a>
+      <ul>
+        <li><a href="#cache-aside-lazy-loading--가장-일반적">Cache-Aside (Lazy Loading) — 가장 일반적</a></li>
+        <li><a href="#write-through">Write-Through</a></li>
+      </ul>
+    </li>
+    <li><a href="#주의사항-3가지">주의사항 3가지</a>
+      <ul>
+        <li><a href="#1-캐시-스탬피드">1. 캐시 스탬피드</a></li>
+        <li><a href="#2-캐시-무효화-누락">2. 캐시 무효화 누락</a></li>
+        <li><a href="#3-자기-호출">3. 자기 호출</a></li>
+      </ul>
+    </li>
+    <li><a href="#마치며">마치며</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="같은-데이터를-매번-db에서-가져와야-할까"><a href="#%ea%b0%99%ec%9d%80-%eb%8d%b0%ec%9d%b4%ed%84%b0%eb%a5%bc-%eb%a7%a4%eb%b2%88-db%ec%97%90%ec%84%9c-%ea%b0%80%ec%a0%b8%ec%99%80%ec%95%bc-%ed%95%a0%ea%b9%8c" class="header-anchor"></a>같은 데이터를 매번 DB에서 가져와야 할까?
+</h2><p>자주 조회되지만 잘 바뀌지 않는 데이터가 있다. 상품 카탈로그, 카테고리 목록, 설정값 같은 것들이다. 이런 데이터를 요청마다 DB에서 가져오는 것은 비효율적이다.</p>
+<p><strong>캐시</strong>는 이 데이터를 메모리에 저장해두고, 다음 요청부터는 DB를 거치지 않고 메모리에서 반환한다. Spring Cache 추상화는 <code>@Cacheable</code> 어노테이션 하나로 이 동작을 구현한다.</p>
+<hr>
+<h2 id="cacheable--캐시-조회--없으면-실행--저장"><a href="#cacheable--%ec%ba%90%ec%8b%9c-%ec%a1%b0%ed%9a%8c--%ec%97%86%ec%9c%bc%eb%a9%b4-%ec%8b%a4%ed%96%89--%ec%a0%80%ec%9e%a5" class="header-anchor"></a>@Cacheable — 캐시 조회 → 없으면 실행 → 저장
+</h2><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Service</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ProductService</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Cacheable</span>(value <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;products&#34;</span>, key <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;#productId&#34;</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> ProductDto <span style="color:#a6e22e">getProduct</span>(Long productId) {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 캐시에 없을 때만 실행 (Cache Miss)</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> productRepository.<span style="color:#a6e22e">findById</span>(productId)
+</span></span><span style="display:flex;"><span>            .<span style="color:#a6e22e">map</span>(ProductDto::from)
+</span></span><span style="display:flex;"><span>            .<span style="color:#a6e22e">orElseThrow</span>(() <span style="color:#f92672">-&gt;</span> <span style="color:#66d9ef">new</span> ProductNotFoundException(productId));
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Configuration</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@EnableCaching</span>  <span style="color:#75715e">// 캐시 활성화</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">CacheConfig</span> { }
+</span></span></code></pre></div><p>동작 흐름:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>[첫 번째 호출]
+</span></span><span style="display:flex;"><span>→ 캐시 조회 → Miss → 메서드 실행 → 결과를 캐시에 저장 → 반환
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>[두 번째 이후]
+</span></span><span style="display:flex;"><span>→ 캐시 조회 → Hit → 메서드 실행 없이 캐시 반환
+</span></span></code></pre></div><p>키를 복합적으로 구성할 수 있다.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Cacheable</span>(value <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;products&#34;</span>, key <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;#category + &#39;:&#39; + #page&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> List<span style="color:#f92672">&lt;</span>ProductDto<span style="color:#f92672">&gt;</span> <span style="color:#a6e22e">getProductsByCategory</span>(String category, <span style="color:#66d9ef">int</span> page) { ... }
+</span></span></code></pre></div><hr>
+<h2 id="cacheevict--데이터-수정-시-캐시-삭제"><a href="#cacheevict--%eb%8d%b0%ec%9d%b4%ed%84%b0-%ec%88%98%ec%a0%95-%ec%8b%9c-%ec%ba%90%ec%8b%9c-%ec%82%ad%ec%a0%9c" class="header-anchor"></a>@CacheEvict — 데이터 수정 시 캐시 삭제
+</h2><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@CacheEvict</span>(value <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;products&#34;</span>, key <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;#productId&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">updateProduct</span>(Long productId, ProductUpdateRequest request) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 메서드 실행 후 캐시 삭제 (기본값)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 다음 조회 시 DB에서 새 데이터를 가져와 캐시에 저장</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 전체 삭제</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@CacheEvict</span>(value <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;products&#34;</span>, allEntries <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">clearAllCache</span>() { }
+</span></span></code></pre></div><hr>
+<h2 id="cacheput--항상-실행--캐시-갱신"><a href="#cacheput--%ed%95%ad%ec%83%81-%ec%8b%a4%ed%96%89--%ec%ba%90%ec%8b%9c-%ea%b0%b1%ec%8b%a0" class="header-anchor"></a>@CachePut — 항상 실행 + 캐시 갱신
+</h2><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@CachePut</span>(value <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;products&#34;</span>, key <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;#result.id&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> ProductDto <span style="color:#a6e22e">createProduct</span>(ProductCreateRequest request) {
+</span></span><span style="display:flex;"><span>    Product saved <span style="color:#f92672">=</span> productRepository.<span style="color:#a6e22e">save</span>(<span style="color:#66d9ef">new</span> Product(request));
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> ProductDto.<span style="color:#a6e22e">from</span>(saved); <span style="color:#75715e">// 반환값이 캐시에 저장됨</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><code>@Cacheable</code>은 캐시에 있으면 실행을 건너뛰지만, <code>@CachePut</code>은 항상 실행하고 결과로 캐시를 갱신한다.</p>
+<hr>
+<h2 id="로컬-캐시에서-redis로-교체"><a href="#%eb%a1%9c%ec%bb%ac-%ec%ba%90%ec%8b%9c%ec%97%90%ec%84%9c-redis%eb%a1%9c-%ea%b5%90%ec%b2%b4" class="header-anchor"></a>로컬 캐시에서 Redis로 교체
+</h2><p>Spring Cache는 추상화 레이어라 구현체를 쉽게 교체할 수 있다. 코드 변경 없이 <code>CacheManager</code>만 바꾸면 된다.</p>
+<h3 id="로컬-캐시-기본"><a href="#%eb%a1%9c%ec%bb%ac-%ec%ba%90%ec%8b%9c-%ea%b8%b0%eb%b3%b8" class="header-anchor"></a>로컬 캐시 (기본)
+</h3><p>기본값은 <code>ConcurrentMapCacheManager</code>다. 별도 설정 없이 동작하지만 서버가 여러 대면 서버마다 다른 캐시를 갖게 되어 데이터 불일치가 생긴다.</p>
+<h3 id="redis-캐시-다중-서버-환경"><a href="#redis-%ec%ba%90%ec%8b%9c-%eb%8b%a4%ec%a4%91-%ec%84%9c%eb%b2%84-%ed%99%98%ea%b2%bd" class="header-anchor"></a>Redis 캐시 (다중 서버 환경)
+</h3><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-xml" data-lang="xml"><span style="display:flex;"><span><span style="color:#f92672">&lt;dependency&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;groupId&gt;</span>org.springframework.boot<span style="color:#f92672">&lt;/groupId&gt;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&lt;artifactId&gt;</span>spring-boot-starter-data-redis<span style="color:#f92672">&lt;/artifactId&gt;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;/dependency&gt;</span>
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">spring</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">cache</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">type</span>: <span style="color:#ae81ff">redis</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">redis</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">time-to-live: 3600000  # 기본 TTL</span>: <span style="color:#ae81ff">1시간</span>
+</span></span></code></pre></div><p>캐시별로 TTL을 다르게 설정하려면:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Bean</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> RedisCacheManager <span style="color:#a6e22e">cacheManager</span>(RedisConnectionFactory factory) {
+</span></span><span style="display:flex;"><span>    Map<span style="color:#f92672">&lt;</span>String, RedisCacheConfiguration<span style="color:#f92672">&gt;</span> configs <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> HashMap<span style="color:#f92672">&lt;&gt;</span>();
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    configs.<span style="color:#a6e22e">put</span>(<span style="color:#e6db74">&#34;products&#34;</span>,
+</span></span><span style="display:flex;"><span>        RedisCacheConfiguration.<span style="color:#a6e22e">defaultCacheConfig</span>()
+</span></span><span style="display:flex;"><span>            .<span style="color:#a6e22e">entryTtl</span>(Duration.<span style="color:#a6e22e">ofMinutes</span>(30))
+</span></span><span style="display:flex;"><span>            .<span style="color:#a6e22e">serializeValuesWith</span>(
+</span></span><span style="display:flex;"><span>                RedisSerializationContext.<span style="color:#a6e22e">SerializationPair</span>
+</span></span><span style="display:flex;"><span>                    .<span style="color:#a6e22e">fromSerializer</span>(<span style="color:#66d9ef">new</span> GenericJackson2JsonRedisSerializer())));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    configs.<span style="color:#a6e22e">put</span>(<span style="color:#e6db74">&#34;users&#34;</span>,
+</span></span><span style="display:flex;"><span>        RedisCacheConfiguration.<span style="color:#a6e22e">defaultCacheConfig</span>()
+</span></span><span style="display:flex;"><span>            .<span style="color:#a6e22e">entryTtl</span>(Duration.<span style="color:#a6e22e">ofHours</span>(1)));
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> RedisCacheManager.<span style="color:#a6e22e">builder</span>(factory)
+</span></span><span style="display:flex;"><span>        .<span style="color:#a6e22e">withInitialCacheConfigurations</span>(configs)
+</span></span><span style="display:flex;"><span>        .<span style="color:#a6e22e">build</span>();
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><hr>
+<h2 id="캐시-전략"><a href="#%ec%ba%90%ec%8b%9c-%ec%a0%84%eb%9e%b5" class="header-anchor"></a>캐시 전략
+</h2><h3 id="cache-aside-lazy-loading--가장-일반적"><a href="#cache-aside-lazy-loading--%ea%b0%80%ec%9e%a5-%ec%9d%bc%eb%b0%98%ec%a0%81" class="header-anchor"></a>Cache-Aside (Lazy Loading) — 가장 일반적
+</h3><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>읽기: 캐시 → Miss면 DB 조회 → 캐시 저장 → 반환
+</span></span><span style="display:flex;"><span>쓰기: DB 업데이트 → 캐시 삭제 (다음 읽기 때 재적재)
+</span></span></code></pre></div><p>Spring의 <code>@Cacheable</code> + <code>@CacheEvict</code> 패턴이 이것이다.</p>
+<h3 id="write-through"><a href="#write-through" class="header-anchor"></a>Write-Through
+</h3><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>쓰기: DB 업데이트 + 캐시 동시 업데이트
+</span></span></code></pre></div><p><code>@CachePut</code> 패턴이다. 읽기가 항상 캐시에서 이루어져 빠르지만, 잘 쓰지 않는 데이터도 캐시에 올라가 공간을 낭비할 수 있다.</p>
+<hr>
+<h2 id="주의사항-3가지"><a href="#%ec%a3%bc%ec%9d%98%ec%82%ac%ed%95%ad-3%ea%b0%80%ec%a7%80" class="header-anchor"></a>주의사항 3가지
+</h2><h3 id="1-캐시-스탬피드"><a href="#1-%ec%ba%90%ec%8b%9c-%ec%8a%a4%ed%83%ac%ed%94%bc%eb%93%9c" class="header-anchor"></a>1. 캐시 스탬피드
+</h3><p>캐시가 만료되는 순간 대량의 요청이 동시에 DB로 몰리는 현상이다. TTL에 랜덤 jitter를 추가하거나 분산 락으로 하나의 요청만 DB를 조회하도록 처리한다.</p>
+<h3 id="2-캐시-무효화-누락"><a href="#2-%ec%ba%90%ec%8b%9c-%eb%ac%b4%ed%9a%a8%ed%99%94-%eb%88%84%eb%9d%bd" class="header-anchor"></a>2. 캐시 무효화 누락
+</h3><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Transactional</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@CacheEvict</span>(value <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;products&#34;</span>, key <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;#id&#34;</span>)  <span style="color:#75715e">// 잊으면 안 됨</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">updateProduct</span>(Long id, ProductUpdateRequest request) {
+</span></span><span style="display:flex;"><span>    productRepository.<span style="color:#a6e22e">save</span>(product.<span style="color:#a6e22e">update</span>(request));
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>데이터 수정 후 <code>@CacheEvict</code>를 빠트리면 수정 전 데이터가 캐시에 남아 서비스한다.</p>
+<h3 id="3-자기-호출"><a href="#3-%ec%9e%90%ea%b8%b0-%ed%98%b8%ec%b6%9c" class="header-anchor"></a>3. 자기 호출
+</h3><p><code>@Cacheable</code>도 AOP 프록시로 동작한다. <code>@Transactional</code>, <code>@Async</code>와 동일하게 같은 클래스 내부에서 직접 호출하면 캐시가 적용되지 않는다.</p>
+<p>Redis에 저장하는 DTO는 직렬화 가능해야 한다. Jackson JSON 직렬화 시 기본 생성자가 필요하다.</p>
+<hr>
+<h2 id="마치며"><a href="#%eb%a7%88%ec%b9%98%eb%a9%b0" class="header-anchor"></a>마치며
+</h2><p>Spring Cache의 핵심은 <strong>구현체 독립성</strong>이다. 로컬 캐시에서 Redis로 교체할 때 <code>@Cacheable</code> 코드는 전혀 바꾸지 않아도 된다. <code>@Cacheable</code>(조회 캐시), <code>@CacheEvict</code>(삭제), <code>@CachePut</code>(갱신) 세 가지 어노테이션을 목적에 맞게 조합하고, 다중 서버 환경에서는 반드시 Redis 같은 분산 캐시를 사용해야 한다.</p>
+<p>다음 편에서는 Spring Scheduling — <code>@Scheduled</code>와 다중 서버 환경에서의 중복 실행 방지를 정리한다.</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/spring/">Spring</a>
+        
+            <a href="/tags/cache/">Cache</a>
+        
+            <a href="/tags/cacheable/">Cacheable</a>
+        
+            <a href="/tags/redis/">Redis</a>
+        
+            <a href="/tags/cacheevict/">Cacheevict</a>
+        
+            <a href="/tags/performance/">Performance</a>
+        
+            <a href="/tags/backend/">Backend</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">Related content</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/tech/2026-05-19-spring-10-exception-handling/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Spring 완전 정복 #10] Spring 예외 처리 — @ControllerAdvice와 Custom Exception 설계</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/tech/2026-05-19-spring-11-testing/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Spring 완전 정복 #11] Spring 테스트 전략 — 단위·슬라이스·통합 테스트를 언제 어떻게 쓸까</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/tech/2026-05-19-spring-12-async/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Spring 완전 정복 #12] Spring @Async — 비동기 처리와 CompletableFuture 병렬 실행</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/tech/2026-05-19-spring-14-scheduling/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Spring 완전 정복 #14] Spring @Scheduled — cron 표현식과 다중 서버 중복 실행 방지</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/tech/2026-05-19-spring-01-servlet-fundamentals/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Spring 완전 정복 #1] Spring을 제대로 이해하려면 Servlet부터 — HTTP 요청이 Controller에 닿기까지</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <script
+    src="https://giscus.app/client.js"
+    data-repo="kastori1206/kastori1206.github.io"
+    data-repo-id="R_kgDOG0eEcg"
+    data-category="Announcements"
+    data-category-id="DIC_kwDOG0eEcs4C9Zgp"
+    data-mapping="title"
+    data-strict="0"
+    data-reactions-enabled="1"
+    data-emit-metadata="0"
+    data-input-position="top"
+    data-theme="light"
+    data-lang="ko"
+    data-loading="lazy"
+    crossorigin="anonymous"
+    async
+></script>
+<script>
+    function setGiscusTheme(theme) {
+        let giscus = document.querySelector("iframe.giscus-frame");
+        if (giscus) {
+            giscus.contentWindow.postMessage(
+                {
+                    giscus: {
+                        setConfig: {
+                            theme: theme,
+                        },
+                    },
+                },
+                "https://giscus.app"
+            );
+        }
+    }
+
+    (function () {
+        addEventListener("message", (e) => {
+            if (event.origin !== "https://giscus.app") return;
+            handler();
+        });
+        window.addEventListener("onColorSchemeChange", handler);
+
+        function handler() {
+            if (document.documentElement.dataset.scheme === "light") {
+                setGiscusTheme('light');
+            } else {
+                setGiscusTheme('dark_dimmed');
+            }
+        }
+    })();
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 kastori
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.2">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
     import gallery from '\/ts\/gallery.js';
 
     const articleContent = document.querySelector('.article-content');
@@ -113,4 +752,15 @@
         });
         lightbox.init();
     }
-</script></main></div><script type=text/javascript src=/ts/main.1ff1e5fdc4e178ed422e50aa407526dc552f26342d729343fded19416194382c.js defer></script></body></html>
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.14250b133f8a93a9ed7853f174d121a1d517c91749bb975d858607ea237c12f1.js" defer></script>
+
+
+    </body>
+</html>

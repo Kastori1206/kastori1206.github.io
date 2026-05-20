@@ -1,0 +1,7 @@
+name = "pageview"
+main = "pageview-worker.js"
+compatibility_date = "2024-01-01"
+
+[[kv_namespaces]]
+binding = "PAGEVIEWS"
+# id = ""  # Cloudflare 대시보드에서 KV namespace ID를 복사해서 넣으세요

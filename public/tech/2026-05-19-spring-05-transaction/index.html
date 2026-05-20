@@ -1,92 +1,822 @@
-<!doctype html><html lang=ko-kr dir=ltr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><meta name=description content="@Transactional이 AOP 프록시로 동작하는 원리부터, REQUIRED vs REQUIRES_NEW 차이, 격리수준 4단계, 자기 호출 함정까지 실전 코드로 정리한다."><title>[Spring 완전 정복 #5] @Transactional 완전 정복 — 동작 원리, 전파속성, 격리수준</title><link rel=canonical href=https://blog.kastori.dev/tech/2026-05-19-spring-05-transaction/><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=preload as=style href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap"><link rel=stylesheet href=/scss/style.min.c990da72d979f2c9af89fd014cb4e89705bd3c5ec43136cfaf09baa5323c398a.css><meta property='og:title' content="[Spring 완전 정복 #5] @Transactional 완전 정복 — 동작 원리, 전파속성, 격리수준"><meta property='og:description' content="@Transactional이 AOP 프록시로 동작하는 원리부터, REQUIRED vs REQUIRES_NEW 차이, 격리수준 4단계, 자기 호출 함정까지 실전 코드로 정리한다."><meta property='og:url' content='https://blog.kastori.dev/tech/2026-05-19-spring-05-transaction/'><meta property='og:site_name' content='kastori'><meta property='og:type' content='article'><meta property='article:section' content='Tech'><meta property='article:tag' content='spring'><meta property='article:tag' content='transaction'><meta property='article:tag' content='transactional'><meta property='article:tag' content='propagation'><meta property='article:tag' content='isolation'><meta property='article:tag' content='java'><meta property='article:tag' content='backend'><meta property='article:published_time' content='2026-05-19T00:00:00+00:00'><meta property='article:modified_time' content='2026-05-19T00:00:00+00:00'><meta name=twitter:title content="[Spring 완전 정복 #5] @Transactional 완전 정복 — 동작 원리, 전파속성, 격리수준"><meta name=twitter:description content="@Transactional이 AOP 프록시로 동작하는 원리부터, REQUIRED vs REQUIRES_NEW 차이, 격리수준 4단계, 자기 호출 함정까지 실전 코드로 정리한다."></head><body class=article-page><script>(function(){const e="StackColorScheme";localStorage.getItem(e)||localStorage.setItem(e,"auto")})()</script><script>(function(){const t="StackColorScheme",e=localStorage.getItem(t),n=window.matchMedia("(prefers-color-scheme: dark)").matches===!0;e=="dark"||e==="auto"&&n?document.documentElement.dataset.scheme="dark":document.documentElement.dataset.scheme="light"})()</script><div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky"><button class="hamburger hamburger--spin" type=button id=toggle-menu aria-label="Toggle Menu">
-<span class=hamburger-box><span class=hamburger-inner></span></span></button><header><figure class=site-avatar><a href=/><img src=https://github.com/kastori1206.png width=460 height=460 class=site-logo loading=lazy alt=Avatar></a></figure><div class=site-meta><h1 class=site-name><a href=/>kastori</a></h1><h2 class=site-description>풀스택 개발자의 기술 블로그</h2></div></header><ol class=menu-social><li><a href=https://github.com/kastori1206 title=GitHub rel=me><svg class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6.0 00-1.3-3.2 4.2 4.2.0 00-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3.0 00-6.2.0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2.0 00-.1 3.2A4.6 4.6.0 004 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg></a></li></ol><ol class=menu id=main-menu><li><a href=/><svg class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><polyline points="5 12 3 12 12 3 21 12 19 12"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/><path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6"/></svg>
-<span>Home</span></a></li><li><a href=/tech/><svg class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><rect x="3" y="4" width="18" height="4" rx="2"/><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
-<span>Tech</span></a></li><li><a href=/til/><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg>
-<span>TIL</span></a></li><li><a href=/log/><svg class="icon icon-tabler icon-tabler-infinity" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M9.828 9.172a4 4 0 100 5.656A10 10 0 0012 12a10 10 0 012.172-2.828 4 4 0 110 5.656A10 10 0 0112 12 10 10 0 009.828 9.172"/></svg>
-<span>Log</span></a></li><li><a href=/tags/><svg class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11 3l9 9a1.5 1.5.0 010 2l-6 6a1.5 1.5.0 01-2 0L3 11V7a4 4 0 014-4h4"/><circle cx="9" cy="9" r="2"/></svg>
-<span>Tags</span></a></li><li><a href=/search/><svg class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15" y2="15"/></svg>
-<span>Search</span></a></li><li class=menu-bottom-section><ol class=menu><li id=dark-mode-toggle><svg class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="8" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<svg class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="16" cy="12" r="2"/><rect x="2" y="6" width="20" height="12" rx="6"/></svg>
-<span>Dark Mode</span></li></ol></li></ol></aside><aside class="sidebar right-sidebar sticky"><section class="widget archives"><div class=widget-icon><svg class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/><line x1="11" y1="4" x2="7" y2="20"/><line x1="17" y1="4" x2="13" y2="20"/></svg></div><h2 class="widget-title section-title">Table of contents</h2><div class=widget--toc><nav class=toc-nav id=TableOfContents><ul><li><a href=#transactional을-붙이면-어떻게-트랜잭션이-걸리나>@Transactional을 붙이면 어떻게 트랜잭션이 걸리나</a></li><li><a href=#롤백-기본-규칙--체크-예외-함정>롤백 기본 규칙 — 체크 예외 함정</a></li><li><a href=#readonly--조회-성능을-높이는-간단한-방법>readOnly — 조회 성능을 높이는 간단한 방법</a></li><li><a href=#전파속성--트랜잭션을-어떻게-이어갈까>전파속성 — 트랜잭션을 어떻게 이어갈까</a><ul><li><a href=#required-vs-requires_new--언제-쓸까>REQUIRED vs REQUIRES_NEW — 언제 쓸까</a></li><li><a href=#nested-vs-requires_new>NESTED vs REQUIRES_NEW</a></li></ul></li><li><a href=#격리수준--동시성-문제를-얼마나-막을까>격리수준 — 동시성 문제를 얼마나 막을까</a></li><li><a href=#흔한-함정-3가지>흔한 함정 3가지</a><ul><li><a href=#1-자기-호출--가장-자주-빠지는-함정>1. 자기 호출 — 가장 자주 빠지는 함정</a></li><li><a href=#2-private-메서드에는-동작-안-함>2. private 메서드에는 동작 안 함</a></li><li><a href=#3-전파-함정--unexpectedrollbackexception>3. 전파 함정 — UnexpectedRollbackException</a></li></ul></li><li><a href=#마치며>마치며</a></li></ul></nav></div></section></aside><main class="main full-width"><article class=main-article><header class=article-header><div class=article-details><header class=article-category><a href=/categories/spring/ style=background-color:#c1efbe;color:#123d0f>Spring</a></header><div class=article-title-wrapper><h2 class=article-title><a href=/tech/2026-05-19-spring-05-transaction/>[Spring 완전 정복 #5] @Transactional 완전 정복 — 동작 원리, 전파속성, 격리수준</a></h2><h3 class=article-subtitle>@Transactional이 AOP 프록시로 동작하는 원리부터, REQUIRED vs REQUIRES_NEW 차이, 격리수준 4단계, 자기 호출 함정까지 실전 코드로 정리한다.</h3></div><footer class=article-meta><div class=inline-meta><svg class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><path d="M11.795 21H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v4"/><circle cx="18" cy="18" r="4"/><path d="M15 3v4"/><path d="M7 3v4"/><path d="M3 11h16"/><path d="M18 16.496V18l1 1"/></svg>
-<time class=article-time--published datetime=2026-05-19T00:00:00Z>2026-05-19</time>
-<svg class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z"/><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-<time class=article-time--reading>4 minutes read</time></div></footer></div></header><aside class=article-toc><details><summary><div class=article-toc-title><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6-6 6"/></svg>
-<span>Table of contents</span></div></summary><nav class=toc-nav><ul><li><a href=#transactional을-붙이면-어떻게-트랜잭션이-걸리나>@Transactional을 붙이면 어떻게 트랜잭션이 걸리나</a></li><li><a href=#롤백-기본-규칙--체크-예외-함정>롤백 기본 규칙 — 체크 예외 함정</a></li><li><a href=#readonly--조회-성능을-높이는-간단한-방법>readOnly — 조회 성능을 높이는 간단한 방법</a></li><li><a href=#전파속성--트랜잭션을-어떻게-이어갈까>전파속성 — 트랜잭션을 어떻게 이어갈까</a><ul><li><a href=#required-vs-requires_new--언제-쓸까>REQUIRED vs REQUIRES_NEW — 언제 쓸까</a></li><li><a href=#nested-vs-requires_new>NESTED vs REQUIRES_NEW</a></li></ul></li><li><a href=#격리수준--동시성-문제를-얼마나-막을까>격리수준 — 동시성 문제를 얼마나 막을까</a></li><li><a href=#흔한-함정-3가지>흔한 함정 3가지</a><ul><li><a href=#1-자기-호출--가장-자주-빠지는-함정>1. 자기 호출 — 가장 자주 빠지는 함정</a></li><li><a href=#2-private-메서드에는-동작-안-함>2. private 메서드에는 동작 안 함</a></li><li><a href=#3-전파-함정--unexpectedrollbackexception>3. 전파 함정 — UnexpectedRollbackException</a></li></ul></li><li><a href=#마치며>마치며</a></li></ul></nav></details></aside><section class=article-content><h2 id=transactional을-붙이면-어떻게-트랜잭션이-걸리나><a href=#transactional%ec%9d%84-%eb%b6%99%ec%9d%b4%eb%a9%b4-%ec%96%b4%eb%96%bb%ea%b2%8c-%ed%8a%b8%eb%9e%9c%ec%9e%ad%ec%85%98%ec%9d%b4-%ea%b1%b8%eb%a6%ac%eb%82%98 class=header-anchor></a>@Transactional을 붙이면 어떻게 트랜잭션이 걸리나</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#a6e22e>@Transactional</span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>public</span> <span style=color:#66d9ef>void</span> <span style=color:#a6e22e>createOrder</span>(OrderRequest request) {
-</span></span><span style=display:flex><span>    orderRepository.<span style=color:#a6e22e>save</span>(<span style=color:#66d9ef>new</span> Order(request));
-</span></span><span style=display:flex><span>    paymentRepository.<span style=color:#a6e22e>save</span>(<span style=color:#66d9ef>new</span> Payment(request));
-</span></span><span style=display:flex><span>}
-</span></span></code></pre></div><p>이 어노테이션 하나로 두 save가 하나의 트랜잭션으로 묶인다. 하나라도 실패하면 둘 다 롤백된다. 어떻게?</p><p>답은 <strong>AOP 프록시</strong>다. <code>@Transactional</code>이 붙은 Bean에는 실제 Bean 대신 CGLIB 프록시가 주입된다. 프록시가 메서드 호출을 가로채 트랜잭션 시작/커밋/롤백을 처리하고, 실제 메서드는 비즈니스 로직만 담는다.</p><pre tabindex=0><code>호출자 → [CGLIB 프록시]
-              ↓
-         트랜잭션 begin (Connection.setAutoCommit(false))
-              ↓
-         실제 메서드 실행
-              ↓
-         성공 → commit  /  RuntimeException → rollback
-</code></pre><hr><h2 id=롤백-기본-규칙--체크-예외-함정><a href=#%eb%a1%a4%eb%b0%b1-%ea%b8%b0%eb%b3%b8-%ea%b7%9c%ec%b9%99--%ec%b2%b4%ed%81%ac-%ec%98%88%ec%99%b8-%ed%95%a8%ec%a0%95 class=header-anchor></a>롤백 기본 규칙 — 체크 예외 함정</h2><p>롤백 기본 규칙은 직관에서 벗어나는 경우가 있다.</p><pre tabindex=0><code>RuntimeException (unchecked) → 자동 롤백  ✅
-Error                        → 자동 롤백  ✅
-CheckedException (checked)   → 롤백 안 함 ❌ ← 주의
-</code></pre><p><code>IOException</code>, <code>SQLException</code> 같은 체크 예외는 기본적으로 롤백되지 않는다. 초기 설계에서 체크 예외를 &ldquo;복구 가능한 예외"로 간주했기 때문이다.</p><p>실무에서는 명시적으로 지정하거나 런타임 예외로 전환하는 경우가 많다.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#75715e>// 모든 예외에서 롤백</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>@Transactional</span>(rollbackFor <span style=color:#f92672>=</span> Exception.<span style=color:#a6e22e>class</span>)
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#75715e>// 특정 예외는 롤백 제외</span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>@Transactional</span>(noRollbackFor <span style=color:#f92672>=</span> IllegalArgumentException.<span style=color:#a6e22e>class</span>)
-</span></span></code></pre></div><hr><h2 id=readonly--조회-성능을-높이는-간단한-방법><a href=#readonly--%ec%a1%b0%ed%9a%8c-%ec%84%b1%eb%8a%a5%ec%9d%84-%eb%86%92%ec%9d%b4%eb%8a%94-%ea%b0%84%eb%8b%a8%ed%95%9c-%eb%b0%a9%eb%b2%95 class=header-anchor></a>readOnly — 조회 성능을 높이는 간단한 방법</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#a6e22e>@Transactional</span>(readOnly <span style=color:#f92672>=</span> <span style=color:#66d9ef>true</span>)
-</span></span><span style=display:flex><span><span style=color:#66d9ef>public</span> List<span style=color:#f92672>&lt;</span>Order<span style=color:#f92672>&gt;</span> <span style=color:#a6e22e>getOrders</span>() { ... }
-</span></span></code></pre></div><p>읽기 전용 트랜잭션을 선언하면 두 가지 이점이 있다.</p><p><strong>JPA Dirty Checking 비활성화</strong> — 일반 트랜잭션에서 JPA는 조회한 엔티티의 초기 상태를 스냅샷으로 저장하고, 트랜잭션 종료 시 변경 여부를 비교한다. <code>readOnly = true</code>면 이 스냅샷 저장 단계가 생략된다.</p><p><strong>읽기 전용 커넥션 라우팅</strong> — DB 리플리케이션 환경에서 읽기 전용 커넥션을 replica로 라우팅할 수 있다.</p><p>조회 메서드에는 습관적으로 <code>readOnly = true</code>를 붙이는 것이 좋다.</p><hr><h2 id=전파속성--트랜잭션을-어떻게-이어갈까><a href=#%ec%a0%84%ed%8c%8c%ec%86%8d%ec%84%b1--%ed%8a%b8%eb%9e%9c%ec%9e%ad%ec%85%98%ec%9d%84-%ec%96%b4%eb%96%bb%ea%b2%8c-%ec%9d%b4%ec%96%b4%ea%b0%88%ea%b9%8c class=header-anchor></a>전파속성 — 트랜잭션을 어떻게 이어갈까</h2><p>전파속성은 <code>@Transactional</code> 메서드가 <strong>이미 진행 중인 트랜잭션을 어떻게 처리할지</strong> 결정한다.</p><div class=table-wrapper><table><thead><tr><th>전파속성</th><th>기존 트랜잭션 있을 때</th><th>기존 트랜잭션 없을 때</th></tr></thead><tbody><tr><td><strong>REQUIRED</strong> (기본)</td><td>기존 트랜잭션에 합류</td><td>새 트랜잭션 생성</td></tr><tr><td><strong>REQUIRES_NEW</strong></td><td>기존 일시 중단, 새 트랜잭션 생성</td><td>새 트랜잭션 생성</td></tr><tr><td><strong>NESTED</strong></td><td>중첩 트랜잭션 (savepoint)</td><td>새 트랜잭션 생성</td></tr></tbody></table></div><h3 id=required-vs-requires_new--언제-쓸까><a href=#required-vs-requires_new--%ec%96%b8%ec%a0%9c-%ec%93%b8%ea%b9%8c class=header-anchor></a>REQUIRED vs REQUIRES_NEW — 언제 쓸까</h3><p>가장 중요한 비교다.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#a6e22e>@Service</span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>public</span> <span style=color:#66d9ef>class</span> <span style=color:#a6e22e>OrderService</span> {
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>@Transactional</span>  <span style=color:#75715e>// REQUIRED (기본)</span>
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>void</span> <span style=color:#a6e22e>createOrder</span>() {
-</span></span><span style=display:flex><span>        orderRepository.<span style=color:#a6e22e>save</span>(...);
-</span></span><span style=display:flex><span>        notificationService.<span style=color:#a6e22e>sendEmail</span>(); <span style=color:#75715e>// 여기서 예외 → order도 롤백</span>
-</span></span><span style=display:flex><span>    }
-</span></span><span style=display:flex><span>}
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>@Service</span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>public</span> <span style=color:#66d9ef>class</span> <span style=color:#a6e22e>NotificationService</span> {
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>@Transactional</span>(propagation <span style=color:#f92672>=</span> Propagation.<span style=color:#a6e22e>REQUIRES_NEW</span>)
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>void</span> <span style=color:#a6e22e>sendEmail</span>() {
-</span></span><span style=display:flex><span>        <span style=color:#75715e>// 독립 트랜잭션 — 여기서 예외가 나도 createOrder는 영향 없음</span>
-</span></span><span style=display:flex><span>        emailLogRepository.<span style=color:#a6e22e>save</span>(...);
-</span></span><span style=display:flex><span>    }
-</span></span><span style=display:flex><span>}
-</span></span></code></pre></div><p><strong>REQUIRED</strong>: 하나의 트랜잭션으로 묶인다. 어디서 예외가 나든 전체 롤백. &ldquo;주문 저장 + 이메일 전송이 함께 성공해야 할 때&rdquo; 사용.</p><p><strong>REQUIRES_NEW</strong>: 완전히 독립된 트랜잭션. &ldquo;이메일 전송 실패해도 주문은 저장되어야 할 때&rdquo; 사용.</p><h3 id=nested-vs-requires_new><a href=#nested-vs-requires_new class=header-anchor></a>NESTED vs REQUIRES_NEW</h3><p>둘 다 &ldquo;부분 롤백"처럼 보이지만 차이가 있다.</p><p><strong>REQUIRES_NEW</strong>: 부모 트랜잭션과 완전히 독립. 부모가 롤백돼도 이미 커밋된 자식은 유지된다.</p><p><strong>NESTED</strong>: 부모 트랜잭션 안에서 savepoint를 생성. 자식만 롤백 가능하지만, 부모가 롤백되면 자식도 같이 롤백된다.</p><hr><h2 id=격리수준--동시성-문제를-얼마나-막을까><a href=#%ea%b2%a9%eb%a6%ac%ec%88%98%ec%a4%80--%eb%8f%99%ec%8b%9c%ec%84%b1-%eb%ac%b8%ec%a0%9c%eb%a5%bc-%ec%96%bc%eb%a7%88%eb%82%98-%eb%a7%89%ec%9d%84%ea%b9%8c class=header-anchor></a>격리수준 — 동시성 문제를 얼마나 막을까</h2><p>여러 트랜잭션이 동시에 실행될 때 생기는 문제가 세 가지 있다.</p><div class=table-wrapper><table><thead><tr><th>문제</th><th>설명</th></tr></thead><tbody><tr><td><strong>Dirty Read</strong></td><td>커밋되지 않은 다른 트랜잭션의 데이터를 읽음</td></tr><tr><td><strong>Non-repeatable Read</strong></td><td>같은 행을 두 번 조회했는데 값이 다름 (중간에 UPDATE 발생)</td></tr><tr><td><strong>Phantom Read</strong></td><td>같은 조건으로 두 번 조회했는데 행 수가 다름 (중간에 INSERT/DELETE 발생)</td></tr></tbody></table></div><p>격리수준을 높일수록 이 문제를 방지하지만, 잠금이 늘어나 성능이 떨어진다.</p><div class=table-wrapper><table><thead><tr><th>격리수준</th><th>Dirty Read</th><th>Non-repeatable Read</th><th>Phantom Read</th><th>성능</th></tr></thead><tbody><tr><td><strong>READ_UNCOMMITTED</strong></td><td>발생</td><td>발생</td><td>발생</td><td>가장 빠름</td></tr><tr><td><strong>READ_COMMITTED</strong></td><td>방지</td><td>발생</td><td>발생</td><td>빠름</td></tr><tr><td><strong>REPEATABLE_READ</strong></td><td>방지</td><td>방지</td><td>발생</td><td>보통</td></tr><tr><td><strong>SERIALIZABLE</strong></td><td>방지</td><td>방지</td><td>방지</td><td>가장 느림</td></tr></tbody></table></div><p>실무 기본값:</p><ul><li><strong>MySQL InnoDB</strong>: <code>REPEATABLE_READ</code> (MVCC로 Phantom Read도 어느 정도 방지)</li><li><strong>PostgreSQL</strong>: <code>READ_COMMITTED</code></li></ul><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#a6e22e>@Transactional</span>(isolation <span style=color:#f92672>=</span> Isolation.<span style=color:#a6e22e>READ_COMMITTED</span>)
-</span></span></code></pre></div><hr><h2 id=흔한-함정-3가지><a href=#%ed%9d%94%ed%95%9c-%ed%95%a8%ec%a0%95-3%ea%b0%80%ec%a7%80 class=header-anchor></a>흔한 함정 3가지</h2><h3 id=1-자기-호출--가장-자주-빠지는-함정><a href=#1-%ec%9e%90%ea%b8%b0-%ed%98%b8%ec%b6%9c--%ea%b0%80%ec%9e%a5-%ec%9e%90%ec%a3%bc-%eb%b9%a0%ec%a7%80%eb%8a%94-%ed%95%a8%ec%a0%95 class=header-anchor></a>1. 자기 호출 — 가장 자주 빠지는 함정</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#a6e22e>@Service</span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>public</span> <span style=color:#66d9ef>class</span> <span style=color:#a6e22e>OrderService</span> {
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>void</span> <span style=color:#a6e22e>process</span>() {
-</span></span><span style=display:flex><span>        createOrder(); <span style=color:#75715e>// this.createOrder() — 프록시를 거치지 않음!</span>
-</span></span><span style=display:flex><span>    }
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span>    <span style=color:#a6e22e>@Transactional</span>
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>public</span> <span style=color:#66d9ef>void</span> <span style=color:#a6e22e>createOrder</span>() { ... }
-</span></span><span style=display:flex><span>}
-</span></span></code></pre></div><p><code>process()</code>에서 <code>createOrder()</code>를 직접 호출하면 프록시를 건너뛴다. <code>@Transactional</code>이 무시된다.</p><p><strong>해결책</strong>: <code>createOrder()</code>를 별도 클래스로 분리하거나, <code>@Transactional</code>을 <code>process()</code>에 붙인다.</p><h3 id=2-private-메서드에는-동작-안-함><a href=#2-private-%eb%a9%94%ec%84%9c%eb%93%9c%ec%97%90%eb%8a%94-%eb%8f%99%ec%9e%91-%ec%95%88-%ed%95%a8 class=header-anchor></a>2. private 메서드에는 동작 안 함</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#a6e22e>@Transactional</span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>private</span> <span style=color:#66d9ef>void</span> <span style=color:#a6e22e>doSomething</span>() { ... } <span style=color:#75715e>// 동작 안 함</span>
-</span></span></code></pre></div><p>CGLIB 프록시는 클래스를 상속해서 메서드를 오버라이드한다. <code>private</code> 메서드는 오버라이드할 수 없으니 프록시가 개입할 수 없다.</p><h3 id=3-전파-함정--unexpectedrollbackexception><a href=#3-%ec%a0%84%ed%8c%8c-%ed%95%a8%ec%a0%95--unexpectedrollbackexception class=header-anchor></a>3. 전파 함정 — UnexpectedRollbackException</h3><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#a6e22e>@Transactional</span>  <span style=color:#75715e>// REQUIRED — 새 트랜잭션 생성</span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>public</span> <span style=color:#66d9ef>void</span> <span style=color:#a6e22e>parent</span>() {
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>try</span> {
-</span></span><span style=display:flex><span>        child(); <span style=color:#75715e>// 예외 catch해도 이미 늦음</span>
-</span></span><span style=display:flex><span>    } <span style=color:#66d9ef>catch</span> (Exception e) {
-</span></span><span style=display:flex><span>        <span style=color:#75715e>// 여기서 잡아도 트랜잭션은 rollback-only 상태</span>
-</span></span><span style=display:flex><span>    }
-</span></span><span style=display:flex><span>    <span style=color:#75715e>// → UnexpectedRollbackException 발생</span>
-</span></span><span style=display:flex><span>}
-</span></span><span style=display:flex><span>
-</span></span><span style=display:flex><span><span style=color:#a6e22e>@Transactional</span>  <span style=color:#75715e>// REQUIRED — 부모에 합류</span>
-</span></span><span style=display:flex><span><span style=color:#66d9ef>public</span> <span style=color:#66d9ef>void</span> <span style=color:#a6e22e>child</span>() {
-</span></span><span style=display:flex><span>    <span style=color:#66d9ef>throw</span> <span style=color:#66d9ef>new</span> RuntimeException(); <span style=color:#75715e>// 부모 트랜잭션을 rollback-only로 마킹</span>
-</span></span><span style=display:flex><span>}
-</span></span></code></pre></div><p><code>child()</code>의 예외가 트랜잭션을 rollback-only로 마킹하고 나면, <code>parent()</code>에서 catch해도 커밋이 불가능하다. <code>child()</code>를 <code>REQUIRES_NEW</code>로 분리하거나, 예외 처리 전략을 명확히 해야 한다.</p><hr><h2 id=마치며><a href=#%eb%a7%88%ec%b9%98%eb%a9%b0 class=header-anchor></a>마치며</h2><p><code>@Transactional</code>을 제대로 쓰려면 세 가지를 이해해야 한다.</p><ul><li><strong>동작 원리</strong>: AOP 프록시. 외부 호출만 가로채므로 자기 호출, private 메서드에는 동작 안 함.</li><li><strong>전파속성</strong>: REQUIRED는 운명 공동체, REQUIRES_NEW는 완전 독립. 이메일/알림처럼 부가 작업은 REQUIRES_NEW 고려.</li><li><strong>격리수준</strong>: 높을수록 안전하지만 성능 저하. DB 기본값(MySQL → REPEATABLE_READ, PostgreSQL → READ_COMMITTED)을 먼저 이해하고 필요할 때만 변경.</li></ul><p>다음 편에서는 Spring Data JPA — 영속성 컨텍스트와 N+1 문제를 정리한다.</p></section><footer class="article-meta article-footer"><section class=article-tags><a href=/tags/spring/>Spring</a>
-<a href=/tags/transaction/>Transaction</a>
-<a href=/tags/transactional/>Transactional</a>
-<a href=/tags/propagation/>Propagation</a>
-<a href=/tags/isolation/>Isolation</a>
-<a href=/tags/java/>Java</a>
-<a href=/tags/backend/>Backend</a></section></footer></article><aside><h2 class=section-title>Related content</h2><div class=subsection-list><div class=article-list--tile><article><a href=/tech/2026-05-19-spring-10-exception-handling/><div class=article-details><h2 class=article-title>[Spring 완전 정복 #10] Spring 예외 처리 — @ControllerAdvice와 Custom Exception 설계</h2></div></a></article><article><a href=/tech/2026-05-19-spring-11-testing/><div class=article-details><h2 class=article-title>[Spring 완전 정복 #11] Spring 테스트 전략 — 단위·슬라이스·통합 테스트를 언제 어떻게 쓸까</h2></div></a></article><article><a href=/tech/2026-05-19-spring-12-async/><div class=article-details><h2 class=article-title>[Spring 완전 정복 #12] Spring @Async — 비동기 처리와 CompletableFuture 병렬 실행</h2></div></a></article><article><a href=/tech/2026-05-19-spring-14-scheduling/><div class=article-details><h2 class=article-title>[Spring 완전 정복 #14] Spring @Scheduled — cron 표현식과 다중 서버 중복 실행 방지</h2></div></a></article><article><a href=/tech/2026-05-19-spring-01-servlet-fundamentals/><div class=article-details><h2 class=article-title>[Spring 완전 정복 #1] Spring을 제대로 이해하려면 Servlet부터 — HTTP 요청이 Controller에 닿기까지</h2></div></a></article></div></div></aside><script src=https://giscus.app/client.js data-repo=kastori1206/kastori1206.github.io data-repo-id=R_kgDOG0eEcg data-category=Announcements data-category-id=DIC_kwDOG0eEcs4C9Zgp data-mapping=title data-strict=0 data-reactions-enabled=1 data-emit-metadata=0 data-input-position=top data-theme=light data-lang=ko data-loading=lazy crossorigin=anonymous async></script><script>function setGiscusTheme(e){let t=document.querySelector("iframe.giscus-frame");t&&t.contentWindow.postMessage({giscus:{setConfig:{theme:e}}},"https://giscus.app")}(function(){addEventListener("message",t=>{if(event.origin!=="https://giscus.app")return;e()}),window.addEventListener("onColorSchemeChange",e);function e(){setGiscusTheme(document.documentElement.dataset.scheme==="light"?"light":"dark_dimmed")}})()</script><footer class=site-footer><section class=copyright>&copy;
-2026 kastori</section><section class=powerby>Built with <a href=https://gohugo.io/ target=_blank rel=noopener>Hugo</a><br>Theme <b><a href=https://github.com/CaiJimmy/hugo-theme-stack target=_blank rel=noopener data-version=4.0.2>Stack</a></b> designed by <a href=https://jimmycai.com target=_blank rel=noopener>Jimmy</a></section></footer><script type=module>
+<!DOCTYPE html>
+<html lang="ko-kr" dir="ltr">
+    <head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content="@Transactional이 AOP 프록시로 동작하는 원리부터, REQUIRED vs REQUIRES_NEW 차이, 격리수준 4단계, 자기 호출 함정까지 실전 코드로 정리한다.">
+<title>[Spring 완전 정복 #5] @Transactional 완전 정복 — 동작 원리, 전파속성, 격리수준</title>
+
+
+<link rel="canonical" href="http://localhost:1313/tech/2026-05-19-spring-05-transaction/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap">
+
+
+<link rel="stylesheet" href="/scss/style.min.54008e745c83f930d7fe833b96adaf68321fbaab41704e548755bd0ce68e2f24.css"><meta property='og:title' content="[Spring 완전 정복 #5] @Transactional 완전 정복 — 동작 원리, 전파속성, 격리수준">
+<meta property='og:description' content="@Transactional이 AOP 프록시로 동작하는 원리부터, REQUIRED vs REQUIRES_NEW 차이, 격리수준 4단계, 자기 호출 함정까지 실전 코드로 정리한다.">
+<meta property='og:url' content='http://localhost:1313/tech/2026-05-19-spring-05-transaction/'>
+<meta property='og:site_name' content='kastori'>
+<meta property='og:type' content='article'><meta property='article:section' content='Tech' /><meta property='article:tag' content='spring' /><meta property='article:tag' content='transaction' /><meta property='article:tag' content='transactional' /><meta property='article:tag' content='propagation' /><meta property='article:tag' content='isolation' /><meta property='article:tag' content='java' /><meta property='article:tag' content='backend' /><meta property='article:published_time' content='2026-05-19T00:00:00&#43;00:00'/><meta property='article:modified_time' content='2026-05-19T00:00:00&#43;00:00'/>
+<meta name="twitter:title" content="[Spring 완전 정복 #5] @Transactional 완전 정복 — 동작 원리, 전파속성, 격리수준">
+<meta name="twitter:description" content="@Transactional이 AOP 프록시로 동작하는 원리부터, REQUIRED vs REQUIRES_NEW 차이, 격리수준 4단계, 자기 호출 함정까지 실전 코드로 정리한다.">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        <figure class="site-avatar">
+                <a href="/">
+                    <img src="https://github.com/kastori1206.png"
+                        width="460"
+                        height="460"
+                        class="site-logo"
+                        loading="lazy"
+                        alt="Avatar">
+                </a>
+                
+            </figure>
+        
+
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">kastori</a></h1>
+            <h2 class="site-description">풀스택 개발자의 기술 블로그</h2>
+        </div>
+    </header><ol class="menu-social">
+            
+                <li>
+                    <a
+                        href='https://github.com/kastori1206'
+                        
+                        title="GitHub"
+                        rel="me"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><form action="/search/" class="sidebar-search-form" data-json="/search/index.json">
+            <input
+                type="search"
+                name="keyword"
+                placeholder="검색..."
+                autocomplete="off"
+            />
+            <button type="submit" aria-label="검색">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+            </button>
+        </form><ol class="menu" id="main-menu">
+        
+        
+        
+        <li >
+            <a href='/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <polyline points="5 12 3 12 12 3 21 12 19 12" />
+  <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+  <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+</svg>
+
+
+
+                
+                <span>Home</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tech/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <rect x="3" y="4" width="18" height="4" rx="2" />
+  <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
+  <line x1="10" y1="12" x2="14" y2="12" />
+</svg>
+
+
+
+                
+                <span>Tech</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/til/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+                
+                <span>TIL</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/log/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-infinity" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M9.828 9.172a4 4 0 1 0 0 5.656 a10 10 0 0 0 2.172 -2.828a10 10 0 0 1 2.172 -2.828 a4 4 0 1 1 0 5.656a10 10 0 0 1 -2.172 -2.828a10 10 0 0 0 -2.172 -2.828" />
+</svg>
+
+
+
+                
+                <span>Log</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/tags/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-tag" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11 3L20 12a1.5 1.5 0 0 1 0 2L14 20a1.5 1.5 0 0 1 -2 0L3 11v-4a4 4 0 0 1 4 -4h4" />
+  <circle cx="9" cy="9" r="2" />
+</svg>
+
+
+
+                
+                <span>Tags</span>
+            </a>
+        </li>
+        
+        
+        <li >
+            <a href='/search/' >
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="10" cy="10" r="7" />
+  <line x1="21" y1="21" x2="15" y2="15" />
+</svg>
+
+
+
+                
+                <span>Search</span>
+            </a>
+        </li>
+        
+        <li class="menu-bottom-section">
+            <ol class="menu">
+
+                
+                <li id="visitor-count">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.33" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <span id="busuanzi_value_site_uv">-</span>
+                </li>
+
+                
+                    <li id="dark-mode-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                        <span>Dark Mode</span>
+                    </li>
+                
+            </ol>
+        </li>
+    </ol>
+</aside>
+
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">Table of contents</h2>
+        
+        <div class="widget--toc">
+            <nav class="toc-nav" id="TableOfContents">
+                
+  <ul>
+    <li><a href="#transactional을-붙이면-어떻게-트랜잭션이-걸리나">@Transactional을 붙이면 어떻게 트랜잭션이 걸리나</a></li>
+    <li><a href="#롤백-기본-규칙--체크-예외-함정">롤백 기본 규칙 — 체크 예외 함정</a></li>
+    <li><a href="#readonly--조회-성능을-높이는-간단한-방법">readOnly — 조회 성능을 높이는 간단한 방법</a></li>
+    <li><a href="#전파속성--트랜잭션을-어떻게-이어갈까">전파속성 — 트랜잭션을 어떻게 이어갈까</a>
+      <ul>
+        <li><a href="#required-vs-requires_new--언제-쓸까">REQUIRED vs REQUIRES_NEW — 언제 쓸까</a></li>
+        <li><a href="#nested-vs-requires_new">NESTED vs REQUIRES_NEW</a></li>
+      </ul>
+    </li>
+    <li><a href="#격리수준--동시성-문제를-얼마나-막을까">격리수준 — 동시성 문제를 얼마나 막을까</a></li>
+    <li><a href="#흔한-함정-3가지">흔한 함정 3가지</a>
+      <ul>
+        <li><a href="#1-자기-호출--가장-자주-빠지는-함정">1. 자기 호출 — 가장 자주 빠지는 함정</a></li>
+        <li><a href="#2-private-메서드에는-동작-안-함">2. private 메서드에는 동작 안 함</a></li>
+        <li><a href="#3-전파-함정--unexpectedrollbackexception">3. 전파 함정 — UnexpectedRollbackException</a></li>
+      </ul>
+    </li>
+    <li><a href="#마치며">마치며</a></li>
+  </ul>
+
+            </nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+            <main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            
+            
+            
+            <a href="/categories/spring/" style="background-color: hsl(116, 60%, 84%); color: hsl(116, 60%, 15%);">
+                Spring
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/tech/2026-05-19-spring-05-transaction/">[Spring 완전 정복 #5] @Transactional 완전 정복 — 동작 원리, 전파속성, 격리수준</a>
+        </h2>
+
+        
+        <h3 class="article-subtitle">
+            @Transactional이 AOP 프록시로 동작하는 원리부터, REQUIRED vs REQUIRES_NEW 차이, 격리수준 4단계, 자기 호출 함정까지 실전 코드로 정리한다.
+        </h3>
+        
+    </div>
+
+    
+    
+    
+    
+    
+
+    
+    <footer class="article-meta">
+        
+            <div class="inline-meta">
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                    <time class="article-time--published" datetime='2026-05-19T00:00:00Z'>2026-05-19</time>
+                
+
+                
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                    <time class="article-time--reading">
+                        4 minutes read
+                    </time>
+                
+
+                
+                
+                <span class="article-pageview" data-pageview-url="/tech/2026-05-19-spring-05-transaction/">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span class="pageview-count">-</span>
+                </span>
+                
+            </div>
+        
+
+        
+
+        
+    </footer>
+    
+</div>
+
+</header>
+
+    
+    <aside class="article-toc">
+        <details>
+            <summary>
+                <div class="article-toc-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-chevron-right"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 6l6 6l-6 6" /></svg>
+                    <span>Table of contents</span>
+                </div>
+            </summary>
+            <nav class="toc-nav">
+                
+  <ul>
+    <li><a href="#transactional을-붙이면-어떻게-트랜잭션이-걸리나">@Transactional을 붙이면 어떻게 트랜잭션이 걸리나</a></li>
+    <li><a href="#롤백-기본-규칙--체크-예외-함정">롤백 기본 규칙 — 체크 예외 함정</a></li>
+    <li><a href="#readonly--조회-성능을-높이는-간단한-방법">readOnly — 조회 성능을 높이는 간단한 방법</a></li>
+    <li><a href="#전파속성--트랜잭션을-어떻게-이어갈까">전파속성 — 트랜잭션을 어떻게 이어갈까</a>
+      <ul>
+        <li><a href="#required-vs-requires_new--언제-쓸까">REQUIRED vs REQUIRES_NEW — 언제 쓸까</a></li>
+        <li><a href="#nested-vs-requires_new">NESTED vs REQUIRES_NEW</a></li>
+      </ul>
+    </li>
+    <li><a href="#격리수준--동시성-문제를-얼마나-막을까">격리수준 — 동시성 문제를 얼마나 막을까</a></li>
+    <li><a href="#흔한-함정-3가지">흔한 함정 3가지</a>
+      <ul>
+        <li><a href="#1-자기-호출--가장-자주-빠지는-함정">1. 자기 호출 — 가장 자주 빠지는 함정</a></li>
+        <li><a href="#2-private-메서드에는-동작-안-함">2. private 메서드에는 동작 안 함</a></li>
+        <li><a href="#3-전파-함정--unexpectedrollbackexception">3. 전파 함정 — UnexpectedRollbackException</a></li>
+      </ul>
+    </li>
+    <li><a href="#마치며">마치며</a></li>
+  </ul>
+
+            </nav>
+        </details>
+    </aside>
+    
+
+    <section class="article-content">
+    
+    
+    <h2 id="transactional을-붙이면-어떻게-트랜잭션이-걸리나"><a href="#transactional%ec%9d%84-%eb%b6%99%ec%9d%b4%eb%a9%b4-%ec%96%b4%eb%96%bb%ea%b2%8c-%ed%8a%b8%eb%9e%9c%ec%9e%ad%ec%85%98%ec%9d%b4-%ea%b1%b8%eb%a6%ac%eb%82%98" class="header-anchor"></a>@Transactional을 붙이면 어떻게 트랜잭션이 걸리나
+</h2><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Transactional</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">createOrder</span>(OrderRequest request) {
+</span></span><span style="display:flex;"><span>    orderRepository.<span style="color:#a6e22e">save</span>(<span style="color:#66d9ef">new</span> Order(request));
+</span></span><span style="display:flex;"><span>    paymentRepository.<span style="color:#a6e22e">save</span>(<span style="color:#66d9ef">new</span> Payment(request));
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>이 어노테이션 하나로 두 save가 하나의 트랜잭션으로 묶인다. 하나라도 실패하면 둘 다 롤백된다. 어떻게?</p>
+<p>답은 <strong>AOP 프록시</strong>다. <code>@Transactional</code>이 붙은 Bean에는 실제 Bean 대신 CGLIB 프록시가 주입된다. 프록시가 메서드 호출을 가로채 트랜잭션 시작/커밋/롤백을 처리하고, 실제 메서드는 비즈니스 로직만 담는다.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>호출자 → [CGLIB 프록시]
+</span></span><span style="display:flex;"><span>              ↓
+</span></span><span style="display:flex;"><span>         트랜잭션 begin (Connection.setAutoCommit(false))
+</span></span><span style="display:flex;"><span>              ↓
+</span></span><span style="display:flex;"><span>         실제 메서드 실행
+</span></span><span style="display:flex;"><span>              ↓
+</span></span><span style="display:flex;"><span>         성공 → commit  /  RuntimeException → rollback
+</span></span></code></pre></div><hr>
+<h2 id="롤백-기본-규칙--체크-예외-함정"><a href="#%eb%a1%a4%eb%b0%b1-%ea%b8%b0%eb%b3%b8-%ea%b7%9c%ec%b9%99--%ec%b2%b4%ed%81%ac-%ec%98%88%ec%99%b8-%ed%95%a8%ec%a0%95" class="header-anchor"></a>롤백 기본 규칙 — 체크 예외 함정
+</h2><p>롤백 기본 규칙은 직관에서 벗어나는 경우가 있다.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>RuntimeException (unchecked) → 자동 롤백  ✅
+</span></span><span style="display:flex;"><span>Error                        → 자동 롤백  ✅
+</span></span><span style="display:flex;"><span>CheckedException (checked)   → 롤백 안 함 ❌ ← 주의
+</span></span></code></pre></div><p><code>IOException</code>, <code>SQLException</code> 같은 체크 예외는 기본적으로 롤백되지 않는다. 초기 설계에서 체크 예외를 &ldquo;복구 가능한 예외&quot;로 간주했기 때문이다.</p>
+<p>실무에서는 명시적으로 지정하거나 런타임 예외로 전환하는 경우가 많다.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#75715e">// 모든 예외에서 롤백</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@Transactional</span>(rollbackFor <span style="color:#f92672">=</span> Exception.<span style="color:#a6e22e">class</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 특정 예외는 롤백 제외</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@Transactional</span>(noRollbackFor <span style="color:#f92672">=</span> IllegalArgumentException.<span style="color:#a6e22e">class</span>)
+</span></span></code></pre></div><hr>
+<h2 id="readonly--조회-성능을-높이는-간단한-방법"><a href="#readonly--%ec%a1%b0%ed%9a%8c-%ec%84%b1%eb%8a%a5%ec%9d%84-%eb%86%92%ec%9d%b4%eb%8a%94-%ea%b0%84%eb%8b%a8%ed%95%9c-%eb%b0%a9%eb%b2%95" class="header-anchor"></a>readOnly — 조회 성능을 높이는 간단한 방법
+</h2><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Transactional</span>(readOnly <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> List<span style="color:#f92672">&lt;</span>Order<span style="color:#f92672">&gt;</span> <span style="color:#a6e22e">getOrders</span>() { ... }
+</span></span></code></pre></div><p>읽기 전용 트랜잭션을 선언하면 두 가지 이점이 있다.</p>
+<p><strong>JPA Dirty Checking 비활성화</strong> — 일반 트랜잭션에서 JPA는 조회한 엔티티의 초기 상태를 스냅샷으로 저장하고, 트랜잭션 종료 시 변경 여부를 비교한다. <code>readOnly = true</code>면 이 스냅샷 저장 단계가 생략된다.</p>
+<p><strong>읽기 전용 커넥션 라우팅</strong> — DB 리플리케이션 환경에서 읽기 전용 커넥션을 replica로 라우팅할 수 있다.</p>
+<p>조회 메서드에는 습관적으로 <code>readOnly = true</code>를 붙이는 것이 좋다.</p>
+<hr>
+<h2 id="전파속성--트랜잭션을-어떻게-이어갈까"><a href="#%ec%a0%84%ed%8c%8c%ec%86%8d%ec%84%b1--%ed%8a%b8%eb%9e%9c%ec%9e%ad%ec%85%98%ec%9d%84-%ec%96%b4%eb%96%bb%ea%b2%8c-%ec%9d%b4%ec%96%b4%ea%b0%88%ea%b9%8c" class="header-anchor"></a>전파속성 — 트랜잭션을 어떻게 이어갈까
+</h2><p>전파속성은 <code>@Transactional</code> 메서드가 <strong>이미 진행 중인 트랜잭션을 어떻게 처리할지</strong> 결정한다.</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>전파속성</th>
+          <th>기존 트랜잭션 있을 때</th>
+          <th>기존 트랜잭션 없을 때</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>REQUIRED</strong> (기본)</td>
+          <td>기존 트랜잭션에 합류</td>
+          <td>새 트랜잭션 생성</td>
+      </tr>
+      <tr>
+          <td><strong>REQUIRES_NEW</strong></td>
+          <td>기존 일시 중단, 새 트랜잭션 생성</td>
+          <td>새 트랜잭션 생성</td>
+      </tr>
+      <tr>
+          <td><strong>NESTED</strong></td>
+          <td>중첩 트랜잭션 (savepoint)</td>
+          <td>새 트랜잭션 생성</td>
+      </tr>
+  </tbody>
+</table></div>
+<h3 id="required-vs-requires_new--언제-쓸까"><a href="#required-vs-requires_new--%ec%96%b8%ec%a0%9c-%ec%93%b8%ea%b9%8c" class="header-anchor"></a>REQUIRED vs REQUIRES_NEW — 언제 쓸까
+</h3><p>가장 중요한 비교다.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Service</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">OrderService</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Transactional</span>  <span style="color:#75715e">// REQUIRED (기본)</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">createOrder</span>() {
+</span></span><span style="display:flex;"><span>        orderRepository.<span style="color:#a6e22e">save</span>(...);
+</span></span><span style="display:flex;"><span>        notificationService.<span style="color:#a6e22e">sendEmail</span>(); <span style="color:#75715e">// 여기서 예외 → order도 롤백</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@Service</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">NotificationService</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Transactional</span>(propagation <span style="color:#f92672">=</span> Propagation.<span style="color:#a6e22e">REQUIRES_NEW</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">sendEmail</span>() {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 독립 트랜잭션 — 여기서 예외가 나도 createOrder는 영향 없음</span>
+</span></span><span style="display:flex;"><span>        emailLogRepository.<span style="color:#a6e22e">save</span>(...);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><strong>REQUIRED</strong>: 하나의 트랜잭션으로 묶인다. 어디서 예외가 나든 전체 롤백. &ldquo;주문 저장 + 이메일 전송이 함께 성공해야 할 때&rdquo; 사용.</p>
+<p><strong>REQUIRES_NEW</strong>: 완전히 독립된 트랜잭션. &ldquo;이메일 전송 실패해도 주문은 저장되어야 할 때&rdquo; 사용.</p>
+<h3 id="nested-vs-requires_new"><a href="#nested-vs-requires_new" class="header-anchor"></a>NESTED vs REQUIRES_NEW
+</h3><p>둘 다 &ldquo;부분 롤백&quot;처럼 보이지만 차이가 있다.</p>
+<p><strong>REQUIRES_NEW</strong>: 부모 트랜잭션과 완전히 독립. 부모가 롤백돼도 이미 커밋된 자식은 유지된다.</p>
+<p><strong>NESTED</strong>: 부모 트랜잭션 안에서 savepoint를 생성. 자식만 롤백 가능하지만, 부모가 롤백되면 자식도 같이 롤백된다.</p>
+<hr>
+<h2 id="격리수준--동시성-문제를-얼마나-막을까"><a href="#%ea%b2%a9%eb%a6%ac%ec%88%98%ec%a4%80--%eb%8f%99%ec%8b%9c%ec%84%b1-%eb%ac%b8%ec%a0%9c%eb%a5%bc-%ec%96%bc%eb%a7%88%eb%82%98-%eb%a7%89%ec%9d%84%ea%b9%8c" class="header-anchor"></a>격리수준 — 동시성 문제를 얼마나 막을까
+</h2><p>여러 트랜잭션이 동시에 실행될 때 생기는 문제가 세 가지 있다.</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>문제</th>
+          <th>설명</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>Dirty Read</strong></td>
+          <td>커밋되지 않은 다른 트랜잭션의 데이터를 읽음</td>
+      </tr>
+      <tr>
+          <td><strong>Non-repeatable Read</strong></td>
+          <td>같은 행을 두 번 조회했는데 값이 다름 (중간에 UPDATE 발생)</td>
+      </tr>
+      <tr>
+          <td><strong>Phantom Read</strong></td>
+          <td>같은 조건으로 두 번 조회했는데 행 수가 다름 (중간에 INSERT/DELETE 발생)</td>
+      </tr>
+  </tbody>
+</table></div>
+<p>격리수준을 높일수록 이 문제를 방지하지만, 잠금이 늘어나 성능이 떨어진다.</p>
+<div class="table-wrapper"><table>
+  <thead>
+      <tr>
+          <th>격리수준</th>
+          <th>Dirty Read</th>
+          <th>Non-repeatable Read</th>
+          <th>Phantom Read</th>
+          <th>성능</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>READ_UNCOMMITTED</strong></td>
+          <td>발생</td>
+          <td>발생</td>
+          <td>발생</td>
+          <td>가장 빠름</td>
+      </tr>
+      <tr>
+          <td><strong>READ_COMMITTED</strong></td>
+          <td>방지</td>
+          <td>발생</td>
+          <td>발생</td>
+          <td>빠름</td>
+      </tr>
+      <tr>
+          <td><strong>REPEATABLE_READ</strong></td>
+          <td>방지</td>
+          <td>방지</td>
+          <td>발생</td>
+          <td>보통</td>
+      </tr>
+      <tr>
+          <td><strong>SERIALIZABLE</strong></td>
+          <td>방지</td>
+          <td>방지</td>
+          <td>방지</td>
+          <td>가장 느림</td>
+      </tr>
+  </tbody>
+</table></div>
+<p>실무 기본값:</p>
+<ul>
+<li><strong>MySQL InnoDB</strong>: <code>REPEATABLE_READ</code> (MVCC로 Phantom Read도 어느 정도 방지)</li>
+<li><strong>PostgreSQL</strong>: <code>READ_COMMITTED</code></li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Transactional</span>(isolation <span style="color:#f92672">=</span> Isolation.<span style="color:#a6e22e">READ_COMMITTED</span>)
+</span></span></code></pre></div><hr>
+<h2 id="흔한-함정-3가지"><a href="#%ed%9d%94%ed%95%9c-%ed%95%a8%ec%a0%95-3%ea%b0%80%ec%a7%80" class="header-anchor"></a>흔한 함정 3가지
+</h2><h3 id="1-자기-호출--가장-자주-빠지는-함정"><a href="#1-%ec%9e%90%ea%b8%b0-%ed%98%b8%ec%b6%9c--%ea%b0%80%ec%9e%a5-%ec%9e%90%ec%a3%bc-%eb%b9%a0%ec%a7%80%eb%8a%94-%ed%95%a8%ec%a0%95" class="header-anchor"></a>1. 자기 호출 — 가장 자주 빠지는 함정
+</h3><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Service</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">OrderService</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">process</span>() {
+</span></span><span style="display:flex;"><span>        createOrder(); <span style="color:#75715e">// this.createOrder() — 프록시를 거치지 않음!</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">@Transactional</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">createOrder</span>() { ... }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><code>process()</code>에서 <code>createOrder()</code>를 직접 호출하면 프록시를 건너뛴다. <code>@Transactional</code>이 무시된다.</p>
+<p><strong>해결책</strong>: <code>createOrder()</code>를 별도 클래스로 분리하거나, <code>@Transactional</code>을 <code>process()</code>에 붙인다.</p>
+<h3 id="2-private-메서드에는-동작-안-함"><a href="#2-private-%eb%a9%94%ec%84%9c%eb%93%9c%ec%97%90%eb%8a%94-%eb%8f%99%ec%9e%91-%ec%95%88-%ed%95%a8" class="header-anchor"></a>2. private 메서드에는 동작 안 함
+</h3><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Transactional</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">private</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">doSomething</span>() { ... } <span style="color:#75715e">// 동작 안 함</span>
+</span></span></code></pre></div><p>CGLIB 프록시는 클래스를 상속해서 메서드를 오버라이드한다. <code>private</code> 메서드는 오버라이드할 수 없으니 프록시가 개입할 수 없다.</p>
+<h3 id="3-전파-함정--unexpectedrollbackexception"><a href="#3-%ec%a0%84%ed%8c%8c-%ed%95%a8%ec%a0%95--unexpectedrollbackexception" class="header-anchor"></a>3. 전파 함정 — UnexpectedRollbackException
+</h3><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"><code class="language-java" data-lang="java"><span style="display:flex;"><span><span style="color:#a6e22e">@Transactional</span>  <span style="color:#75715e">// REQUIRED — 새 트랜잭션 생성</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">parent</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">try</span> {
+</span></span><span style="display:flex;"><span>        child(); <span style="color:#75715e">// 예외 catch해도 이미 늦음</span>
+</span></span><span style="display:flex;"><span>    } <span style="color:#66d9ef">catch</span> (Exception e) {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 여기서 잡아도 트랜잭션은 rollback-only 상태</span>
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// → UnexpectedRollbackException 발생</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">@Transactional</span>  <span style="color:#75715e">// REQUIRED — 부모에 합류</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">child</span>() {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> RuntimeException(); <span style="color:#75715e">// 부모 트랜잭션을 rollback-only로 마킹</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><code>child()</code>의 예외가 트랜잭션을 rollback-only로 마킹하고 나면, <code>parent()</code>에서 catch해도 커밋이 불가능하다. <code>child()</code>를 <code>REQUIRES_NEW</code>로 분리하거나, 예외 처리 전략을 명확히 해야 한다.</p>
+<hr>
+<h2 id="마치며"><a href="#%eb%a7%88%ec%b9%98%eb%a9%b0" class="header-anchor"></a>마치며
+</h2><p><code>@Transactional</code>을 제대로 쓰려면 세 가지를 이해해야 한다.</p>
+<ul>
+<li><strong>동작 원리</strong>: AOP 프록시. 외부 호출만 가로채므로 자기 호출, private 메서드에는 동작 안 함.</li>
+<li><strong>전파속성</strong>: REQUIRED는 운명 공동체, REQUIRES_NEW는 완전 독립. 이메일/알림처럼 부가 작업은 REQUIRES_NEW 고려.</li>
+<li><strong>격리수준</strong>: 높을수록 안전하지만 성능 저하. DB 기본값(MySQL → REPEATABLE_READ, PostgreSQL → READ_COMMITTED)을 먼저 이해하고 필요할 때만 변경.</li>
+</ul>
+<p>다음 편에서는 Spring Data JPA — 영속성 컨텍스트와 N+1 문제를 정리한다.</p>
+
+</section>
+
+
+    <footer class="article-meta article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/spring/">Spring</a>
+        
+            <a href="/tags/transaction/">Transaction</a>
+        
+            <a href="/tags/transactional/">Transactional</a>
+        
+            <a href="/tags/propagation/">Propagation</a>
+        
+            <a href="/tags/isolation/">Isolation</a>
+        
+            <a href="/tags/java/">Java</a>
+        
+            <a href="/tags/backend/">Backend</a>
+        
+    </section>
+
+
+    </footer>
+
+
+    
+</article>
+
+    
+
+    
+
+<aside>
+    <h2 class="section-title">Related content</h2>
+    <div class="subsection-list">
+        <div class="article-list--tile">
+            
+                
+<article class="">
+    <a href="/tech/2026-05-19-spring-10-exception-handling/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Spring 완전 정복 #10] Spring 예외 처리 — @ControllerAdvice와 Custom Exception 설계</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/tech/2026-05-19-spring-11-testing/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Spring 완전 정복 #11] Spring 테스트 전략 — 단위·슬라이스·통합 테스트를 언제 어떻게 쓸까</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/tech/2026-05-19-spring-12-async/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Spring 완전 정복 #12] Spring @Async — 비동기 처리와 CompletableFuture 병렬 실행</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/tech/2026-05-19-spring-14-scheduling/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Spring 완전 정복 #14] Spring @Scheduled — cron 표현식과 다중 서버 중복 실행 방지</h2>
+        </div>
+    </a>
+</article>
+            
+                
+<article class="">
+    <a href="/tech/2026-05-19-spring-01-servlet-fundamentals/">
+        
+
+        <div class="article-details">
+            <h2 class="article-title">[Spring 완전 정복 #1] Spring을 제대로 이해하려면 Servlet부터 — HTTP 요청이 Controller에 닿기까지</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+
+        <script
+    src="https://giscus.app/client.js"
+    data-repo="kastori1206/kastori1206.github.io"
+    data-repo-id="R_kgDOG0eEcg"
+    data-category="Announcements"
+    data-category-id="DIC_kwDOG0eEcs4C9Zgp"
+    data-mapping="title"
+    data-strict="0"
+    data-reactions-enabled="1"
+    data-emit-metadata="0"
+    data-input-position="top"
+    data-theme="light"
+    data-lang="ko"
+    data-loading="lazy"
+    crossorigin="anonymous"
+    async
+></script>
+<script>
+    function setGiscusTheme(theme) {
+        let giscus = document.querySelector("iframe.giscus-frame");
+        if (giscus) {
+            giscus.contentWindow.postMessage(
+                {
+                    giscus: {
+                        setConfig: {
+                            theme: theme,
+                        },
+                    },
+                },
+                "https://giscus.app"
+            );
+        }
+    }
+
+    (function () {
+        addEventListener("message", (e) => {
+            if (event.origin !== "https://giscus.app") return;
+            handler();
+        });
+        window.addEventListener("onColorSchemeChange", handler);
+
+        function handler() {
+            if (document.documentElement.dataset.scheme === "light") {
+                setGiscusTheme('light');
+            } else {
+                setGiscusTheme('dark_dimmed');
+            }
+        }
+    })();
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+        2026 kastori
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="4.0.2">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+
+
+
+<script type="module">
     import gallery from '\/ts\/gallery.js';
 
     const articleContent = document.querySelector('.article-content');
@@ -110,4 +840,15 @@ CheckedException (checked)   → 롤백 안 함 ❌ ← 주의
         });
         lightbox.init();
     }
-</script></main></div><script type=text/javascript src=/ts/main.1ff1e5fdc4e178ed422e50aa407526dc552f26342d729343fded19416194382c.js defer></script></body></html>
+</script>
+
+    
+
+            </main>
+        </div>
+        
+<script type="text/javascript" src="/ts/main.14250b133f8a93a9ed7853f174d121a1d517c91749bb975d858607ea237c12f1.js" defer></script>
+
+
+    </body>
+</html>
