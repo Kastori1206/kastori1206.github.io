@@ -25,23 +25,26 @@
     return (await r.json()).count ?? 0;
   }
 
-  document.addEventListener('DOMContentLoaded', async () => {
+  document.addEventListener('DOMContentLoaded', () => {
     const els = document.querySelectorAll('[data-pageview-url]');
     if (!els.length) return;
 
     const isArticle = document.body.classList.contains('article-page');
 
-    for (const el of els) {
+    // 모든 요청을 병렬로 보내고 각각 결과가 오는 대로 바로 표시
+    els.forEach(el => {
       const url = el.dataset.pageviewUrl;
       const countEl = el.querySelector('.pageview-count');
-      if (!countEl) continue;
-      try {
-        const count = (isArticle && url === location.pathname)
-          ? await increment(url)
-          : await getCount(url);
-        countEl.textContent = count.toLocaleString();
-      } catch { countEl.textContent = '-'; }
-    }
+      if (!countEl) return;
+
+      const req = (isArticle && url === location.pathname)
+        ? increment(url)
+        : getCount(url);
+
+      req
+        .then(count => { countEl.textContent = count.toLocaleString(); })
+        .catch(() => { countEl.textContent = '-'; });
+    });
   });
 })();
 </script>
