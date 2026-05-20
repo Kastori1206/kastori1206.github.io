@@ -1,0 +1,11 @@
+# Hugo 빌드 결과물 — GitHub Actions가 빌드하므로 커밋 불필요
+public/
+
+# Hugo 리소스 캐시
+resources/
+
+# Hugo 빌드 락 파일
+.hugo_build.lock
+
+# macOS
+.DS_Store
