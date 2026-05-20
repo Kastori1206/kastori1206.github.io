@@ -448,16 +448,13 @@
    사이드바 방문자 통계
    ════════════════════════════════════════ */
 .visitor-stats {
-    padding: 10px 0 6px;
-    border-top: 1px solid var(--card-separator-color);
-    margin-top: 4px;
-}
-
-.visitor-stats-row {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 0 4px;
+    padding: 10px 0 6px;
+    border-top: 1px solid var(--card-separator-color);
+    margin-bottom: 4px;
+    list-style: none;
 }
 
 .visitor-stats-item {
