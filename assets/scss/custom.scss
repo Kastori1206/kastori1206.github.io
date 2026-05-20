@@ -448,8 +448,7 @@
    사이드바 방문자 통계
    ════════════════════════════════════════ */
 .visitor-stats {
-    list-style: none;
-    padding: 10px 0;
+    padding: 10px 0 6px;
     border-top: 1px solid var(--card-separator-color);
     margin-top: 4px;
 }
@@ -482,6 +481,17 @@
         color: var(--card-text-color-main);
         font-variant-numeric: tabular-nums;
     }
+}
+
+/* 아티클 페이지 조회수 */
+.article-pageview {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 1.4rem;
+    color: var(--card-text-color-secondary);
+
+    svg { opacity: 0.7; }
 }
 
 /* ════════════════════════════════════════
