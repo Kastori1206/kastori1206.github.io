@@ -53,7 +53,7 @@ public class GlobalExceptionHandler {
 
 예외 처리 계층은 다음과 같다.
 
-```
+```text
 Controller 예외 발생
   → HandlerExceptionResolver (Spring MVC 내부)
   → @ControllerAdvice

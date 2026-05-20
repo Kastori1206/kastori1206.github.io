@@ -202,7 +202,7 @@ public class OrderRepositoryImpl implements OrderRepositoryCustom {
 
 ## 언제 무엇을 쓸까
 
-```
+```text
 단순 조회         → JPA 쿼리 메서드 (findByStatus, findByMemberId)
 조건 1~2개        → @Query (JPQL)
 동적 쿼리 / 복잡한 조인 / DTO 조회 → QueryDSL ← 실무 표준

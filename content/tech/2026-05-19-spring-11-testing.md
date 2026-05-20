@@ -17,7 +17,7 @@ wiki_source: 10-wiki/tech/spring/09-spring-testing.md
 
 **속도** 때문이다. `@SpringBootTest`는 전체 Context를 띄우므로 느리다. 단순 비즈니스 로직 검증에 매번 10초씩 기다리는 것은 비효율적이다. 테스트 종류를 목적에 맞게 선택하면 빠르고 명확한 테스트를 작성할 수 있다.
 
-```
+```text
 단위 테스트     : 빠름  — 비즈니스 로직
 @WebMvcTest    : 빠름  — API 계약, Validation, HTTP 상태코드
 @DataJpaTest   : 빠름  — 쿼리 메서드, 커스텀 쿼리

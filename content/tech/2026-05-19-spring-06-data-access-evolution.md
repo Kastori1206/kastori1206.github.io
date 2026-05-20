@@ -184,7 +184,7 @@ DB 벤더가 바뀌어도 코드 변경이 없다. 객체 관계를 그대로 �
 
 **실무에서 가장 많이 쓰는 조합**:
 
-```
+```text
 단순 CRUD       → JPA Repository
 복잡한 조회      → QueryDSL (타입 안전한 JPQL 빌더)
 통계·집계 쿼리   → Native Query 또는 MyBatis (별도 모듈)

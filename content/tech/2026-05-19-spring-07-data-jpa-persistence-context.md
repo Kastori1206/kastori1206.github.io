@@ -21,7 +21,7 @@ JPA 관련 면접 질문은 결국 두 가지로 수렴한다. "영속성 컨텍
 
 ## JPA / Hibernate / Spring Data JPA 관계
 
-```
+```text
 JPA       : Java ORM 표준 인터페이스 (명세)
 Hibernate : JPA의 대표 구현체 (Spring Boot 기본)
 Spring Data JPA : JPA를 더 편리하게 추상화한 Spring 모듈
@@ -37,7 +37,7 @@ Spring Data JPA : JPA를 더 편리하게 추상화한 Spring 모듈
 
 ### Entity 생명주기
 
-```
+```text
 비영속  : new Order()  → 컨텍스트와 무관한 일반 객체
 영속    : save() 또는 조회 후 → 컨텍스트가 관리, 변경 감지 적용
 준영속  : 트랜잭션 종료 → 컨텍스트가 더 이상 관리 안 함
@@ -184,7 +184,7 @@ spring:
 
 ### 선택 기준
 
-```
+```text
 ToOne 관계 (ManyToOne, OneToOne) → Fetch Join / @EntityGraph
 컬렉션 + 페이징 필요             → @BatchSize (전역 설정 권장)
 복잡한 조회                       → QueryDSL + Fetch Join

@@ -23,7 +23,7 @@ Spring Boot를 처음 접하면 놀랍다. `main()` 메서드 하나, `@SpringBo
 
 Spring 단독으로 웹 애플리케이션을 만들려면 설정 파일이 여러 개 필요했다.
 
-```
+```text
 web.xml                   → DispatcherServlet 등록
 applicationContext.xml    → Bean 설정
 dispatcher-servlet.xml    → MVC 설정
@@ -49,7 +49,7 @@ public class MyApplication {
 }
 ```
 
-```
+```text
 @SpringBootApplication
   ├─ @SpringBootConfiguration  : @Configuration과 동일 — Bean 설정 클래스
   ├─ @EnableAutoConfiguration  : 자동설정 활성화 ← 핵심
@@ -64,7 +64,7 @@ public class MyApplication {
 
 Spring Boot는 애플리케이션이 시작될 때 클래스패스에 어떤 라이브러리가 있는지 확인하고, 그에 맞는 Bean을 자동으로 등록한다.
 
-```
+```text
 spring-boot-starter-web 의존성 추가
   → 클래스패스에 Tomcat, Spring MVC 라이브러리 존재 확인
   → TomcatAutoConfiguration → 내장 Tomcat Bean 자동 등록
@@ -164,7 +164,7 @@ Tomcat 대신 다른 서버를 쓰고 싶다면 교체할 수 있다.
 
 개발, 스테이징, 운영 환경마다 DB URL, 로그 레벨, 외부 API 키가 다르다. 프로파일로 분리한다.
 
-```
+```text
 application.yml          # 공통 설정
 application-dev.yml      # 개발 환경
 application-prod.yml     # 운영 환경
@@ -200,7 +200,7 @@ SPRING_PROFILES_ACTIVE=prod java -jar myapp.jar
 
 ### 설정 우선순위 (높을수록 우선)
 
-```
+```text
 1. 커맨드라인 인수          --server.port=9090
 2. 환경변수                 SERVER_PORT=9090
 3. application-{profile}.yml

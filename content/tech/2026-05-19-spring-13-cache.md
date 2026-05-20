@@ -43,7 +43,7 @@ public class CacheConfig { }
 
 동작 흐름:
 
-```
+```text
 [첫 번째 호출]
 → 캐시 조회 → Miss → 메서드 실행 → 결과를 캐시에 저장 → 반환
 
@@ -145,7 +145,7 @@ public RedisCacheManager cacheManager(RedisConnectionFactory factory) {
 
 ### Cache-Aside (Lazy Loading) — 가장 일반적
 
-```
+```text
 읽기: 캐시 → Miss면 DB 조회 → 캐시 저장 → 반환
 쓰기: DB 업데이트 → 캐시 삭제 (다음 읽기 때 재적재)
 ```
@@ -154,7 +154,7 @@ Spring의 `@Cacheable` + `@CacheEvict` 패턴이 이것이다.
 
 ### Write-Through
 
-```
+```text
 쓰기: DB 업데이트 + 캐시 동시 업데이트
 ```
 

@@ -27,7 +27,7 @@ wiki_source: 10-wiki/tech/spring/01-servlet-fundamentals.md
 
 CGI의 방식은 단순하다: HTTP 요청이 들어올 때마다 새 프로세스를 생성해서 처리하고, 끝나면 종료한다.
 
-```
+```text
 요청 1 → 프로세스 생성 → 처리 → 프로세스 종료
 요청 2 → 프로세스 생성 → 처리 → 프로세스 종료
 요청 N → ...
@@ -37,7 +37,7 @@ CGI의 방식은 단순하다: HTTP 요청이 들어올 때마다 새 프로세�
 
 **Java Servlet은 이 문제를 스레드로 해결했다.** Servlet 인스턴스는 JVM에 딱 1개만 상주하고, 요청마다 스레드를 하나씩 할당해 처리한다.
 
-```
+```text
 Servlet 인스턴스 (1개, JVM에 상주)
   ├─ 요청 1 → 스레드 1
   ├─ 요청 2 → 스레드 2
@@ -52,7 +52,7 @@ Servlet 인스턴스 (1개, JVM에 상주)
 
 Servlet 인스턴스는 **Servlet Container(Tomcat)**가 관리한다. 생명주기는 세 단계다.
 
-```
+```text
 최초 요청 또는 서버 시작
   → init()    : 인스턴스 생성 + 초기화 (딱 1회)
   → service() : 요청마다 호출 (doGet / doPost 등으로 분기)
@@ -106,7 +106,7 @@ Spring Boot가 별도의 WAS 없이 `java -jar` 한 줄로 서버를 시작할 �
 
 Filter는 Servlet Container 레벨에서 동작한다. Spring Context가 시작되기 전, 즉 DispatcherServlet보다 앞에 위치한다.
 
-```
+```text
 HTTP 요청 → [Filter1 → Filter2 → Filter3] → Servlet(DispatcherServlet)
 HTTP 응답 ← [Filter1 ← Filter2 ← Filter3] ← Servlet
 ```
@@ -151,7 +151,7 @@ Spring Boot는 `DispatcherServlet`을 자동 등록하고, 모든 URL(`/`)을 �
 
 HTTP 요청이 Controller에 닿기까지 거치는 전체 레이어다.
 
-```
+```text
 HTTP 요청
   → Tomcat (HTTP 파싱, 스레드 할당)
     → Filter Chain (Servlet Container 레벨)

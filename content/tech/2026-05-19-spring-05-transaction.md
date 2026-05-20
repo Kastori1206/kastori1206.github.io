@@ -25,7 +25,7 @@ public void createOrder(OrderRequest request) {
 
 답은 **AOP 프록시**다. `@Transactional`이 붙은 Bean에는 실제 Bean 대신 CGLIB 프록시가 주입된다. 프록시가 메서드 호출을 가로채 트랜잭션 시작/커밋/롤백을 처리하고, 실제 메서드는 비즈니스 로직만 담는다.
 
-```
+```text
 호출자 → [CGLIB 프록시]
               ↓
          트랜잭션 begin (Connection.setAutoCommit(false))
@@ -41,7 +41,7 @@ public void createOrder(OrderRequest request) {
 
 롤백 기본 규칙은 직관에서 벗어나는 경우가 있다.
 
-```
+```text
 RuntimeException (unchecked) → 자동 롤백  ✅
 Error                        → 자동 롤백  ✅
 CheckedException (checked)   → 롤백 안 함 ❌ ← 주의

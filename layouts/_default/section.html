@@ -8,6 +8,39 @@
         {{ end }}
     </header>
 
+    {{/* 이 섹션에 속한 카테고리 타일 (포스트 수 내림차순) */}}
+    {{- $sectionName := .Section -}}
+    {{- $catPages := slice -}}
+    {{- $seen := slice -}}
+    {{- range $key, $terms := .Site.Taxonomies.categories -}}
+        {{- $inSection := false -}}
+        {{- range $terms.Pages -}}
+            {{- if eq .Section $sectionName -}}{{- $inSection = true -}}{{- end -}}
+        {{- end -}}
+        {{- if and $inSection (not (in $seen $key)) -}}
+            {{- $seen = $seen | append $key -}}
+            {{- $catPage := $.Site.GetPage (printf "/categories/%s" $key) -}}
+            {{- if $catPage -}}
+                {{- $catPages = $catPages | append $catPage -}}
+            {{- end -}}
+        {{- end -}}
+    {{- end -}}
+    {{/* 포스트 수 내림차순 정렬 */}}
+    {{- $catPages = sort $catPages "Pages.Len" "desc" -}}
+    {{- if $catPages -}}
+    <div class="section-cat-group">
+        <h3 class="section-cat-label">카테고리</h3>
+        <div class="section-cat-list">
+            {{- range $catPages -}}
+            <a href="{{ .RelPermalink }}" class="section-cat-card" title="{{ .Title }}">
+                <span class="section-cat-name">{{ .Title }}</span>
+                <span class="section-cat-count">{{ .Pages.Len }}</span>
+            </a>
+            {{- end -}}
+        </div>
+    </div>
+    {{- end -}}
+
     {{- $pages := .Pages.ByDate.Reverse -}}
 
     {{ range $pages.GroupByDate "2006" }}

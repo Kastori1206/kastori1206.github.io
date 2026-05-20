@@ -45,7 +45,7 @@ public class AsyncConfig {
 
 스레드 풀 동작 방식:
 
-```
+```text
 1. 스레드 수 < CorePoolSize → 새 스레드 생성
 2. 스레드 수 >= CorePoolSize → 큐에 대기
 3. 큐가 꽉 참 → MaxPoolSize까지 스레드 추가 생성
@@ -172,7 +172,7 @@ public void asyncMethod() {
 
 ## 언제 쓸까
 
-```
+```text
 ✅ 적합한 경우
   - 이메일/SMS/푸시 알림 발송
   - 감사 로그 기록

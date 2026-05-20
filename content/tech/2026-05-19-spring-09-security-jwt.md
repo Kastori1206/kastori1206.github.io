@@ -15,7 +15,7 @@ wiki_source: 10-wiki/tech/spring/07-spring-security.md
 
 Spring Security를 다루기 전에 개념을 먼저 정리한다.
 
-```
+```text
 인증 (Authentication) : "당신이 누구인지" 확인 → 로그인
 인가 (Authorization)  : "당신이 무엇을 할 수 있는지" 확인 → 권한 체크
 ```
@@ -28,7 +28,7 @@ Spring Security를 다루기 전에 개념을 먼저 정리한다.
 
 HTTP 요청이 Controller에 닿기 전에 Spring Security의 필터 체인이 먼저 처리한다.
 
-```
+```text
 HTTP 요청
   ↓
 DelegatingFilterProxy       ← Servlet Container에 등록된 진입점
@@ -94,7 +94,7 @@ public class SecurityConfig {
 
 로그인 요청이 처리되는 전체 흐름이다.
 
-```
+```text
 [1] POST /login (username, password)
 [2] UsernamePasswordAuthenticationFilter → 미인증 토큰 생성
 [3] AuthenticationManager (ProviderManager) → 인증 Provider 목록 순회
@@ -297,7 +297,7 @@ BCrypt는 동일한 평문을 암호화해도 매번 다른 해시가 나온다(
 
 Access Token만 사용하면 만료 시 재로그인이 필요하다. Refresh Token 패턴으로 해결한다.
 
-```
+```text
 Access Token  : 짧은 만료 (15분~1시간) — 탈취 위험 최소화
 Refresh Token : 긴 만료 (7~30일) — DB/Redis에 저장
 

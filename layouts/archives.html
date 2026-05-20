@@ -3,28 +3,24 @@
 
 {{ define "main" }}
     <header class="archives-header">
-        <h2 class="section-title">분류</h2>
-        <div class="section-cards">
-            {{- $sections := slice
-                (dict "key" "tech" "title" "Tech" "desc" "개발 기술 포스트")
-                (dict "key" "til"  "title" "TIL"  "desc" "Today I Learned")
-                (dict "key" "log"  "title" "Log"  "desc" "일상 기록")
-            -}}
-            {{- range $sections -}}
-                {{- $page := $.Site.GetPage .key -}}
-                {{- if $page -}}
-                <a href="{{ $page.RelPermalink }}" class="section-card-item section-card-item--{{ .key }}">
-                    <div class="section-card-top">
-                        <span class="section-card-title">{{ .title }}</span>
-                    </div>
-                    <div class="section-card-bottom">
-                        <span class="section-card-desc">{{ .desc }}</span>
-                        <span class="section-card-count">{{ len $page.RegularPagesRecursive }} posts</span>
-                    </div>
-                </a>
-                {{- end -}}
+        {{- $sections := slice "tech" "til" "log" -}}
+        {{- $sectionPages := slice -}}
+        {{- range $sections -}}
+            {{- $page := $.Site.GetPage . -}}
+            {{- if $page -}}
+                {{- $sectionPages = $sectionPages | append $page -}}
             {{- end -}}
+        {{- end -}}
+        {{- if $sectionPages -}}
+        <h2 class="section-title">분류</h2>
+        <div class="subsection-list">
+            <div class="article-list--tile">
+                {{- range $sectionPages -}}
+                    {{ partial "article-list/tile" . }}
+                {{- end -}}
+            </div>
         </div>
+        {{- end -}}
     </header>
 
     {{ $pages := partial "helper/pages.html" .Site.Home }}

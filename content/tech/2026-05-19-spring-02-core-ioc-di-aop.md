@@ -27,7 +27,7 @@ Java 어노테이션은 코드에 붙이는 메타데이터다. Spring Container
 
 Spring이 하는 일은 애플리케이션 시작 시 리플렉션으로 클래스를 스캔해서 어노테이션을 읽고, 그에 따라 동작을 결정하는 것이다.
 
-```
+```text
 애플리케이션 시작
   → @ComponentScan이 지정 패키지 하위를 전부 탐색
   → 각 클래스를 리플렉션으로 읽음
@@ -67,7 +67,7 @@ public class OrderService {
 
 **IoC(Inversion of Control, 제어의 역전)**는 이 제어권을 개발자에서 Spring Container로 넘기는 것이다.
 
-```
+```text
 전통적: 개발자 → 객체 생성 → 의존성 연결
 IoC:    Spring Container → 객체 생성 → 의존성 연결 → 개발자에게 제공
 ```
@@ -205,7 +205,7 @@ AOP는 이 **횡단 관심사(Cross-cutting Concerns)**를 별도 모듈로 분�
 
 Spring AOP는 **프록시 패턴**으로 동작한다. 실제 Bean을 직접 주입하는 대신, Bean을 감싼 프록시 객체를 주입한다. 메서드 호출이 들어오면 프록시가 먼저 받아서 부가 로직을 실행하고, 실제 Bean으로 넘긴다.
 
-```
+```text
 호출자 → [프록시] → 실제 Bean
              ↑
         Advice(부가 로직) 실행

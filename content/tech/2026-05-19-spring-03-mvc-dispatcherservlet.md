@@ -21,7 +21,7 @@ Spring MVC 애플리케이션에서 HTTP 요청은 예외 없이 `DispatcherServ
 
 Spring MVC 이전에는 URL마다 Servlet을 따로 만들었다.
 
-```
+```text
 /users  → UserServlet
 /orders → OrderServlet
 /items  → ItemServlet
@@ -31,7 +31,7 @@ Spring MVC 이전에는 URL마다 Servlet을 따로 만들었다.
 
 **Front Controller 패턴**은 모든 요청을 하나의 진입점이 받아 적절한 핸들러에 위임한다.
 
-```
+```text
 모든 요청 (/*) → DispatcherServlet → Controller 위임
 ```
 
@@ -43,7 +43,7 @@ Spring MVC 이전에는 URL마다 Servlet을 따로 만들었다.
 
 `DispatcherServlet`은 모든 일을 혼자 처리하지 않는다. 역할별 전문 컴포넌트에게 위임한다.
 
-```
+```text
 DispatcherServlet
   ├─ HandlerMapping        : "이 URL → 어떤 Controller?"
   ├─ HandlerAdapter        : "이 Controller를 어떻게 실행?"
@@ -78,7 +78,7 @@ public class GlobalExceptionHandler {
 
 HTTP 요청이 응답까지 가는 전체 흐름이다.
 
-```
+```text
 ① HTTP 요청 → Tomcat
 ② Filter Chain (전처리)
 ③ DispatcherServlet 진입

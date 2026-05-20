@@ -51,7 +51,7 @@ public class SchedulingConfig {
 public void fixedRateTask() { ... }
 ```
 
-```
+```text
 실행 시작: 0초
 실행 완료: 3초
 다음 시작: 5초 (0초 + 5초)
@@ -67,7 +67,7 @@ public void fixedRateTask() { ... }
 public void fixedDelayTask() { ... }
 ```
 
-```
+```text
 실행 시작: 0초
 실행 완료: 3초
 다음 시작: 8초 (3초 완료 + 5초)
@@ -87,14 +87,14 @@ public void businessHoursTask() { ... }
 
 ### 크론 표현식 구조
 
-```
+```text
 초  분  시  일  월  요일
 0   0   2   *   *   *    → 매일 02:00:00
 ```
 
 자주 쓰는 표현:
 
-```
+```text
 "0 0 * * * *"       // 매 시간 정각
 "0 0 0 * * *"       // 매일 자정
 "0 0 0 1 * *"       // 매월 1일 자정
@@ -129,7 +129,7 @@ public void dailyBatch() { ... }
 
 서버가 3대면 새벽 2시에 배치가 3번 실행된다.
 
-```
+```text
 서버 A ─┐
 서버 B ─┼─ 모두 02:00에 dailyBatch() 실행 → 데이터 3번 처리
 서버 C ─┘

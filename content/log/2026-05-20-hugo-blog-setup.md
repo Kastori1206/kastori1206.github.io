@@ -18,14 +18,14 @@ draft: false
 
 ## 스택 구성
 
-```
-Hugo (v0.161.1 extended)
-└── Stack 테마 (git submodule)
-GitHub Pages (호스팅)
-GitHub Actions (CI/CD)
-Cloudflare (DNS, 커스텀 도메인)
-Giscus (댓글, GitHub Discussions 기반)
-```
+| 구성 요소 | 역할 |
+|---|---|
+| Hugo v0.161.1 extended | 정적 사이트 생성기 |
+| Stack 테마 (git submodule) | 블로그 테마 |
+| GitHub Pages | 호스팅 |
+| GitHub Actions | CI/CD 자동 배포 |
+| Cloudflare | DNS, 커스텀 도메인 |
+| Giscus | 댓글 (GitHub Discussions 기반) |
 
 ## 초기 세팅
 
@@ -135,7 +135,7 @@ Cloudflare를 DNS로 사용하는 경우 설정은 간단하다.
 
 ### 2. static/CNAME 파일 생성
 
-```
+```text
 blog.yourdomain.com
 ```
 
@@ -186,7 +186,7 @@ hasCJKLanguage = true        # 한국어 단어 수 계산에 필수
 
 Stack 테마는 `content/` 아래 디렉터리가 곧 섹션이 된다.
 
-```
+```text
 content/
 ├── tech/          # 기술 포스트
 │   ├── _index.md  # 섹션 제목/설명
@@ -214,7 +214,7 @@ Stack 테마의 파일을 직접 수정하면 테마 업데이트 시 덮어씌�
 
 ### 예시: 홈 레이아웃 수정
 
-```
+```text
 themes/stack/layouts/home.html  ← 원본 (건드리지 않는다)
 layouts/home.html               ← 오버라이드 (여기에 수정)
 ```
@@ -321,7 +321,7 @@ Stack 테마에서 사용할 수 있는 아이콘은 `themes/stack/assets/icons/
 
 ### GitHub Pages 빌드 실패
 
-```
+```text
 Error: Unable to locate config file or config directory
 ```
 
@@ -348,6 +348,36 @@ hasCJKLanguage = true
 - Giscus 댓글
 - 좌측 사이드바 검색창
 - Archives 페이지 섹션 카드
+
+---
+
+## 회고
+
+### 테마를 그대로 쓰지 않은 이유
+
+Stack 테마 자체는 완성도가 높다. 그런데 막상 세팅하고 보니 "내가 원하는 구조"와 맞지 않는 부분이 있었다.
+
+기본 테마는 홈에 글 목록만 나열한다. 나는 **Tech / TIL / Log** 세 섹션을 명확히 구분해서 보여주고 싶었고, 각 섹션 안에서도 카테고리별로 탐색할 수 있게 만들고 싶었다. 레퍼런스로 삼은 [liu-houliang 블로그](https://liuhouliang.com/en/archives/)처럼 Archives 페이지에서 섹션 카드가 한눈에 보이는 구조가 필요했다.
+
+### 직접 만든 것들
+
+**Archives 섹션 타일**: 기본 테마엔 없다. `layouts/archives.html`을 만들어 Stack의 `article-list/tile` 파셜을 활용했고, Tech/TIL/Log 각각에 그라디언트 색상을 입혔다.
+
+**섹션 내 카테고리 카드**: Tech 페이지에 들어갔을 때 "이 섹션 안에 어떤 카테고리가 있는지" 바로 보여주고 싶었다. Hugo 택소노미를 순회해서 현재 섹션에 속한 카테고리만 필터링하고, 포스트 수와 함께 카드로 표시했다.
+
+**macOS 코드 블록**: 코드가 많은 기술 블로그인 만큼 코드 블록이 예뻐야 했다. SVG base64로 신호등 버튼을 만들어 `.highlight:before`에 넣었다.
+
+**페이지네이션 버튼**: Stack 기본 스타일이 `flex: 1 1 auto`라 버튼이 전체 너비로 늘어났다. `flex: 0 0 auto`로 수정했다.
+
+### 느낀 점
+
+Hugo 오버라이드 시스템(`layouts/` 우선)이 깔끔하다. 테마 자체를 건드리지 않고 필요한 부분만 교체할 수 있어서 테마 업데이트와 충돌이 없다.
+
+CSS 변수 기반 테마(`--accent-color`, `--card-background` 등)가 잘 설계되어 있어서 다크/라이트 모드 대응도 변수만 바꾸면 됐다.
+
+Hugo 템플릿 문법이 처음엔 낯설었는데, `range`, `with`, `partial` 구조를 이해하고 나니 빠르게 원하는 레이아웃을 만들 수 있었다.
+
+---
 
 ## 참고
 
