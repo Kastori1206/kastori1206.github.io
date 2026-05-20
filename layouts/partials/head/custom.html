@@ -1,0 +1,8 @@
+<!-- Busuanzi 방문자 카운터 -->
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<!-- Cloudflare Web Analytics -->
+<!-- 아래 token을 Cloudflare 대시보드 > Analytics > Web Analytics 에서 발급받아 교체하세요 -->
+{{- with .Site.Params.cloudflareAnalyticsToken -}}
+<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "{{ . }}"}'></script>
+{{- end -}}

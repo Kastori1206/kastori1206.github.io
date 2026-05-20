@@ -8,6 +8,7 @@ hasCJKLanguage = true
 [params]
     mainSections = ["tech", "til", "log"]
     rssFullContent = true
+    cloudflareAnalyticsToken = "89aae11da51b4f1091c43fd9824a54ac"  # Cloudflare Web Analytics 토큰 여기에 입력
 
     [params.footer]
         since = 2026
