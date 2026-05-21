@@ -9,7 +9,7 @@ series_total: 14
 tags: [spring, ioc, di, aop, bean, thread, concurrency, java, backend]
 description: "Spring이 어노테이션 하나로 동작하는 원리, IoC/DI가 왜 필요한지, AOP 프록시가 @Transactional을 어떻게 처리하는지, 그리고 Singleton Bean이 수백 개의 동시 요청을 받을 때 무슨 일이 벌어지는지를 코드로 풀어낸다."
 wiki_source: 10-wiki/tech/spring/02-spring-core.md
-categories: [Spring, Backend]
+categories: [Spring]
 ---
 
 ## "@Service만 붙이면 왜 되는 걸까?"
