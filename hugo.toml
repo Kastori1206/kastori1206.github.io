@@ -11,6 +11,11 @@ hasCJKLanguage = true
     cloudflareAnalyticsToken = "89aae11da51b4f1091c43fd9824a54ac"  # Cloudflare Web Analytics 토큰
     pageviewWorkerUrl = "https://pageview.kastori1990.workers.dev"  # Cloudflare Worker URL (예: https://pageview.kastori.workers.dev)
 
+    # SEO
+    description = "Spring, JPA, React 등 풀스택 웹 개발 실무 지식을 코드와 함께 정리하는 기술 블로그"
+    author = "kastori"
+    favicon = "img/favicon.svg"
+
     [params.footer]
         since = 2026
 
