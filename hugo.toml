@@ -139,5 +139,9 @@ hasCJKLanguage = true
         [menu.social.params]
             Icon = "brand-github"
 
+[services]
+    [services.googleAnalytics]
+        ID = "G-Q49JF8HV72"
+
 [outputs]
     home = ["HTML", "RSS"]
