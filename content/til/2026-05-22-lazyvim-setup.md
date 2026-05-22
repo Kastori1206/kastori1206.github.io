@@ -51,7 +51,7 @@ Neovim은 Vim 기반이라 **모드** 개념이 있다. 처음엔 낯설지만 �
 
 처음 쓸 때 가장 많이 막히는 게 "어떻게 닫아?" 인데, 이것만 기억하면 된다:
 
-```
+```text
 파일 열림 (Normal 모드)
   → i 눌러서 편집
   → Esc로 Normal 복귀
@@ -155,7 +155,7 @@ LazyVim은 `<Space>`를 리더 키로 쓴다. `<Space>`를 누르면 사용 가�
 
 ### 전체 선택 / 복사
 
-```
+```text
 ggVG   전체 선택 (Visual 모드)
 ggyG   전체 복사
 ```
@@ -237,7 +237,7 @@ return {
 저장하고 nvim 재시작하면 자동으로 설치된다. `<Space>mp`로 토글.
 
 파일 구조:
-```
+```text
 ~/.config/nvim/
   └─ lua/
       └─ plugins/

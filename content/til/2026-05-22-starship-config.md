@@ -39,7 +39,7 @@ brew install --cask font-meslo-lg-nerd-font
 
 ## 프롬프트 구조
 
-```
+```text
 🔋 85%  ~/project  main [!?]  +8 -14  v24.15.0          took 3s  09:56
 ❯
 ```
