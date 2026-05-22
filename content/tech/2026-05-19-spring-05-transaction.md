@@ -1,6 +1,6 @@
 ---
 title: "[Spring 완전 정복 #5] @Transactional 완전 정복 — 동작 원리, 전파속성, 격리수준"
-date: 2026-05-19
+date: 2026-05-19T10:00:00+09:00
 draft: false
 series: "Spring 완전 정복"
 series_order: 5

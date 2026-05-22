@@ -1,6 +1,6 @@
 ---
 title: "[Spring 완전 정복 #7] Spring Data JPA — 영속성 컨텍스트와 N+1 문제 완전 정리"
-date: 2026-05-19
+date: 2026-05-19T08:00:00+09:00
 draft: false
 series: "Spring 완전 정복"
 series_order: 7

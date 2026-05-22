@@ -1,6 +1,6 @@
 ---
 title: "[Spring 완전 정복 #6] Java 데이터 접근 기술의 진화 — JDBC에서 JPA까지, 왜 바뀌었나"
-date: 2026-05-19
+date: 2026-05-19T09:00:00+09:00
 draft: false
 series: "Spring 완전 정복"
 series_order: 6

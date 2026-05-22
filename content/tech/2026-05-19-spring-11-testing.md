@@ -1,6 +1,6 @@
 ---
 title: "[Spring 완전 정복 #11] Spring 테스트 전략 — 단위·슬라이스·통합 테스트를 언제 어떻게 쓸까"
-date: 2026-05-19
+date: 2026-05-19T04:00:00+09:00
 draft: false
 series: "Spring 완전 정복"
 series_order: 11

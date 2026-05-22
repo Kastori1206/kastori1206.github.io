@@ -1,6 +1,6 @@
 ---
 title: "[Spring 완전 정복 #2] Spring Core — IoC, DI, AOP, 그리고 동시성까지"
-date: 2026-05-19
+date: 2026-05-19T13:00:00+09:00
 draft: false
 target_section: tech
 series: "Spring 완전 정복"

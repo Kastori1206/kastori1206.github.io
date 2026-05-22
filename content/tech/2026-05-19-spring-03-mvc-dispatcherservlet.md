@@ -1,6 +1,6 @@
 ---
 title: "[Spring 완전 정복 #3] Spring MVC 내부 구조 — DispatcherServlet이 요청을 처리하는 방법"
-date: 2026-05-19
+date: 2026-05-19T12:00:00+09:00
 draft: false
 series: "Spring 완전 정복"
 series_order: 3

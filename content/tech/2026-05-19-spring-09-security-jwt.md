@@ -1,6 +1,6 @@
 ---
 title: "[Spring 완전 정복 #9] Spring Security + JWT 구현 — 인증 흐름부터 토큰 검증까지"
-date: 2026-05-19
+date: 2026-05-19T06:00:00+09:00
 draft: false
 series: "Spring 완전 정복"
 series_order: 9

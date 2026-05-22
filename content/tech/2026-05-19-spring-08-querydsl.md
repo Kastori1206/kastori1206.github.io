@@ -1,6 +1,6 @@
 ---
 title: "[Spring 완전 정복 #8] QueryDSL이 실무 표준인 이유 — JPQL의 한계와 타입 안전한 동적 쿼리"
-date: 2026-05-19
+date: 2026-05-19T07:00:00+09:00
 draft: false
 series: "Spring 완전 정복"
 series_order: 8
