@@ -62,7 +62,7 @@ layout: page
 
 개인정보 처리에 관한 문의는 아래로 연락해 주세요.
 
-- 이메일: lillycover.dev1@gmail.com
+- 이메일: kastori.dev@gmail.com
 
 ---
 
