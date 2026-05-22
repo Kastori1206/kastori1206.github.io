@@ -1,6 +1,6 @@
 ---
 title: "[Spring 완전 정복 #4] Spring Boot — xml 없이 바로 뜨는 이유, 자동설정 원리 완전 분석"
-date: 2026-05-19T11:00:00+09:00
+date: 2026-04-29
 draft: false
 series: "Spring 완전 정복"
 series_order: 4

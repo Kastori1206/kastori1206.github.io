@@ -1,6 +1,6 @@
 ---
 title: "[Spring 완전 정복 #10] Spring 예외 처리 — @ControllerAdvice와 Custom Exception 설계"
-date: 2026-05-19T05:00:00+09:00
+date: 2026-05-11
 draft: false
 series: "Spring 완전 정복"
 series_order: 10

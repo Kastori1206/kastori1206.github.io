@@ -1,6 +1,6 @@
 ---
 title: "[Spring 완전 정복 #12] Spring @Async — 비동기 처리와 CompletableFuture 병렬 실행"
-date: 2026-05-19T03:00:00+09:00
+date: 2026-05-15
 draft: false
 series: "Spring 완전 정복"
 series_order: 12

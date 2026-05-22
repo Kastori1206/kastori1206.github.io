@@ -1,6 +1,6 @@
 ---
 title: "[Spring 완전 정복 #13] Spring Cache — @Cacheable로 DB 부하 줄이기, Redis 캐시 전략"
-date: 2026-05-19T02:00:00+09:00
+date: 2026-05-17
 draft: false
 series: "Spring 완전 정복"
 series_order: 13

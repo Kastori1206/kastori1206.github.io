@@ -1,6 +1,6 @@
 ---
 title: "[Spring 완전 정복 #1] Spring을 제대로 이해하려면 Servlet부터 — HTTP 요청이 Controller에 닿기까지"
-date: 2026-05-19T14:00:00+09:00
+date: 2026-04-23
 draft: false
 series: "Spring 완전 정복"
 series_order: 1

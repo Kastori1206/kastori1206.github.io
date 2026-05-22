@@ -1,6 +1,6 @@
 ---
 title: "[Spring 완전 정복 #14] Spring @Scheduled — cron 표현식과 다중 서버 중복 실행 방지"
-date: 2026-05-19T01:00:00+09:00
+date: 2026-05-19
 draft: false
 series: "Spring 완전 정복"
 series_order: 14
