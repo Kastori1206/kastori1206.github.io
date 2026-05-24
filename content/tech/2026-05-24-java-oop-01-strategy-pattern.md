@@ -217,3 +217,7 @@ void 지원하지_않는_결제수단_예외() {
 | 테스트 용이성 | 전략별 독립 단위 테스트 가능 |
 
 **마치며**: 분기가 늘어날 것 같다는 예감이 들 때, `@Component` + `List<인터페이스>` 조합을 떠올려 보자. if/else가 들어갈 자리를 인터페이스가 대신한다.
+
+---
+
+> **참고**: 전략 패턴(Strategy Pattern)은 GoF(Gang of Four)의 *Design Patterns: Elements of Reusable Object-Oriented Software* (Gamma et al., 1994)에서 정의한 행동 패턴이다. 이 글의 결제 예시는 그 원형을 Spring 생태계에 맞게 응용한 것으로, `List<인터페이스>` 자동 주입 방식은 Spring 커뮤니티에서 광범위하게 사용되는 관용 표현이다.
