@@ -1,6 +1,6 @@
 ---
-title: "이 코드, 어느 계층에 있어야 할까? — Spring 계층별 책임 분리"
-date: 2026-05-24
+title: "[Java 객체지향 실전 #6] 이 코드, 어느 계층에 있어야 할까? — Spring 계층별 책임 분리"
+date: 2026-05-27
 draft: false
 target_section: tech
 series: "Java 객체지향 실전"

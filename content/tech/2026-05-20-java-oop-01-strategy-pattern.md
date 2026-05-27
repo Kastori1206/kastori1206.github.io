@@ -1,6 +1,6 @@
 ---
-title: "if/else 지옥에서 탈출하기 — 전략 패턴 + Spring Bean 자동 주입"
-date: 2026-05-24
+title: "[Java 객체지향 실전 #1] if/else 지옥에서 탈출하기 — 전략 패턴 + Spring Bean 자동 주입"
+date: 2026-05-20
 draft: false
 target_section: tech
 series: "Java 객체지향 실전"

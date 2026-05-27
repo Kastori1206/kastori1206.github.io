@@ -1,6 +1,6 @@
 ---
-title: "카카오, 네이버, 구글... API 클라이언트 코드가 계속 늘어난다면"
-date: 2026-05-24
+title: "[Java 객체지향 실전 #4] 카카오, 네이버, 구글... API 클라이언트 코드가 계속 늘어난다면"
+date: 2026-05-23
 draft: false
 target_section: tech
 series: "Java 객체지향 실전"

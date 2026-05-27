@@ -1,6 +1,6 @@
 ---
-title: "엔티티마다 반복되는 코드를 제네릭으로 한 번에 — BaseEntity, GenericService, ApiResponse"
-date: 2026-05-24
+title: "[Java 객체지향 실전 #2] 엔티티마다 반복되는 코드를 제네릭으로 한 번에 — BaseEntity, GenericService, ApiResponse"
+date: 2026-05-21
 draft: false
 target_section: tech
 series: "Java 객체지향 실전"

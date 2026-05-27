@@ -1,6 +1,6 @@
 ---
-title: "주문 완료 후 해야 할 일이 자꾸 늘어난다면 — Spring 이벤트로 의존성 끊기"
-date: 2026-05-24
+title: "[Java 객체지향 실전 #5] 주문 완료 후 해야 할 일이 자꾸 늘어난다면 — Spring 이벤트로 의존성 끊기"
+date: 2026-05-25
 draft: false
 target_section: tech
 series: "Java 객체지향 실전"

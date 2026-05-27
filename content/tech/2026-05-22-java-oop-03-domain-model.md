@@ -1,6 +1,6 @@
 ---
-title: "엔티티에 setter가 있다면 — 빈약한 도메인 모델을 풍부하게 만드는 법"
-date: 2026-05-24
+title: "[Java 객체지향 실전 #3] 엔티티에 setter가 있다면 — 빈약한 도메인 모델을 풍부하게 만드는 법"
+date: 2026-05-22
 draft: false
 target_section: tech
 series: "Java 객체지향 실전"
