@@ -140,6 +140,14 @@ hasCJKLanguage = true
         [menu.social.params]
             Icon = "brand-github"
 
+    [[menu.social]]
+        identifier = "notion"
+        name = "Portfolio"
+        url = "https://kastori-dev.notion.site/"
+        weight = 20
+        [menu.social.params]
+            Icon = "brand-notion"
+
 [[menu.footer]]
     identifier = "privacy"
     name = "개인정보처리방침"
