@@ -150,5 +150,11 @@ hasCJKLanguage = true
     [services.googleAnalytics]
         ID = "G-Q49JF8HV72"
 
+[markup]
+    [markup.highlight]
+        codeFences = true
+        guessSyntax = true
+        noClasses = false
+
 [outputs]
     home = ["HTML", "RSS"]
