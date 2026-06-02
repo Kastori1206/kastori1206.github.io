@@ -3,6 +3,7 @@ locale = "ko-kr"
 title = "kastori"
 theme = "stack"
 paginate = 10
+timeZone = "Asia/Seoul"
 hasCJKLanguage = true
 
 [params]
