@@ -1,6 +1,6 @@
 ---
 title: "알아두면 구하는 Git 명령어 — rebase, squash, cherry-pick, stash, revert"
-date: 2026-06-12
+date: 2026-06-11
 draft: false
 target_section: tech
 series: "Git 팀 협업 실전"
