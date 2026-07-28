@@ -9,6 +9,8 @@ tags: [java, oop, spring, design-pattern]
 description: "Spring + JPA 프로젝트에서 엔티티마다 복붙하는 Auditing 필드, CRUD 메서드, 응답 래퍼를 제네릭 추상화로 한 곳에 모으는 방법을 설명한다."
 wiki_source: 10-wiki/tech/java-oop-patterns/02-generic-abstraction.md
 categories: [Java]
+aliases:
+    - /tech/2026-05-24-java-oop-02-generic-abstraction/
 ---
 
 ## 이런 코드, 복붙하고 있지 않나요?
